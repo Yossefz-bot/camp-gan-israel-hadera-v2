@@ -1,0 +1,2 @@
+import { authorized, denied } from './_auth.js';import { json } from './_helpers.js';
+export async function onRequestGet({request,env}){if(!authorized(request,env))return denied();const result={admin_token:Boolean(env.ADMIN_TOKEN),d1:false,r2:false,time:new Date().toISOString()};try{await env.DB.prepare('SELECT 1 AS ok').first();result.d1=true}catch(e){result.d1_error=e.message}try{await env.MEDIA.list({limit:1});result.r2=true}catch(e){result.r2_error=e.message}return json(result,result.admin_token&&result.d1&&result.r2?200:500)}

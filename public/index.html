@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ff7a18">
+  <meta name="format-detection" content="telephone=no">
+  <title>קעמפ גן ישראל חדרה</title>
+  <meta id="metaDescription" name="description" content="גלריות, סרטונים והמנונים מקעמפ גן ישראל חדרה">
+  <meta id="metaKeywords" name="keywords" content="קעמפ גן ישראל חדרה, גלריות קעמפ">
+  <meta property="og:type" content="website">
+  <meta id="ogTitle" property="og:title" content="קעמפ גן ישראל חדרה">
+  <meta id="ogDescription" property="og:description" content="גלריות, סרטונים והמנונים מהקעמפ">
+  <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">דילוג לתוכן</a>
+  <div id="pageProgress" class="page-progress" aria-hidden="true"><span></span></div>
+
+  <header id="topbar" class="topbar">
+    <a class="brand" href="#home" aria-label="חזרה לדף הבית">
+      <span id="brandLogoWrap" class="brand-logo-wrap"><img id="brandLogo" class="hidden" alt=""><span id="brandInitials">GI</span></span>
+      <span class="brand-copy"><strong id="brandName">קעמפ גן ישראל חדרה</strong><small id="brandCity">חדרה</small></span>
+    </a>
+
+    <button id="menuButton" class="menu-button" type="button" aria-label="פתיחת תפריט" aria-expanded="false"><span></span><span></span><span></span></button>
+    <nav id="mainNav" class="main-nav" aria-label="ניווט ראשי">
+      <a href="#gallery">גלריות</a>
+      <a href="#videos">סרטונים</a>
+      <a href="#songs">המנונים</a>
+      <a href="#testimonials">הורים מספרים</a>
+      <a href="#updates">עדכונים</a>
+      <a href="#contact">יצירת קשר</a>
+    </nav>
+    <button id="themeToggle" class="theme-toggle" type="button" aria-label="החלפת מצב תצוגה">☾</button>
+  </header>
+
+  <main id="mainContent">
+    <section id="home" class="hero">
+      <div class="hero-art" aria-hidden="true"><span></span><span></span><span></span></div><div class="camp-confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="container hero-grid">
+        <div class="hero-copy reveal">
+          <span id="heroKicker" class="eyebrow">קיץ של אנרגיה • חברות • שליחות</span>
+          <h1 id="heroTitle">הקיץ מתחיל כאן</h1>
+          <p id="heroText">כל התמונות, הסרטונים, ההמנונים והרגעים הגדולים של קעמפ גן ישראל חדרה</p>
+          <div id="heroButtons" class="hero-actions">
+            <a class="btn btn-primary" href="#gallery">לגלריות האחרונות</a>
+            <a class="btn btn-soft" href="#songs">להמנוני הקעמפ</a>
+          </div>
+          <div class="hero-stats" aria-label="נתוני האתר">
+            <div><strong id="statPhotos">0</strong><span>תמונות</span></div>
+            <div><strong id="statDays">0</strong><span>ימי קעמפ</span></div>
+            <div><strong id="statSongs">0</strong><span>המנונים</span></div>
+          </div>
+        </div>
+        <div class="hero-visual reveal">
+          <div id="heroImage" class="hero-image-card">
+            <div class="hero-image-fallback"><span>☀</span><strong>קעמפ גן ישראל</strong><small>חדרה • קיץ של חוויה</small></div>
+          </div>
+          <div class="hero-sticker hero-sticker-one">🔥 אנרגיה</div>
+          <div class="hero-sticker hero-sticker-two">☀ קיץ</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="updates" class="announcement-wrap hidden">
+      <div class="container"><article id="message" class="announcement"><span class="announcement-icon">📣</span><div><strong></strong><p></p></div><a class="hidden" target="_blank" rel="noopener"></a></article></div>
+    </section>
+
+    <section id="registrationSection" class="section section-soft hidden">
+      <div class="container">
+        <div class="section-heading reveal"><div><span class="eyebrow">ההרשמה פתוחה</span><h2>מצטרפים לקיץ הגדול</h2></div><p>כל הפרטים בסרטון, וההרשמה בלחיצה אחת.</p></div>
+        <div id="registrationVideo" class="video-host aspect-landscape reveal"></div>
+      </div>
+    </section>
+
+    <section id="storySection" class="story-band hidden">
+      <div id="storyImage" class="story-image"></div><div class="story-shade"></div>
+      <div class="container story-content reveal"><span id="storyKicker" class="eyebrow eyebrow-light"></span><h2 id="storyTitle"></h2><p id="storyText"></p></div>
+    </section>
+
+    <section id="gallery" class="section">
+      <div class="container">
+        <div class="section-heading reveal"><div><span class="eyebrow">יום אחר יום</span><h2 id="galleryTitle">הגלריות של הקעמפ</h2></div><p id="galleryText">כל יום מקבל מקום משלו — סרטון סיכום, תמונות ורגעים ששווה לחזור אליהם.</p></div>
+        <div class="gallery-tools reveal"><label class="search-box"><span>⌕</span><input id="daySearch" type="search" placeholder="חיפוש לפי יום או פעילות"></label><div id="dayCount" class="result-count"></div></div>
+        <div id="days" class="days-grid"><article class="day-card skeleton"></article><article class="day-card skeleton"></article><article class="day-card skeleton"></article></div>
+      </div>
+    </section>
+
+    <section id="videos" class="section section-soft hidden">
+      <div class="container">
+        <div class="section-heading centered reveal"><div><span class="eyebrow">לצפות מחדש</span><h2>סרטוני הסיכום</h2></div><p>הרגעים הגדולים מכל יום — בלי לצאת מהאתר.</p></div>
+        <div id="summaryVideos" class="videos-grid"></div>
+      </div>
+    </section>
+
+    <section id="songs" class="section songs-section hidden">
+      <div class="container songs-layout">
+        <div class="songs-copy reveal"><span class="eyebrow eyebrow-light">הפסקול של הקיץ</span><h2 id="songsTitle">המנוני הקעמפ</h2><p id="songsText">בחרו שיר, הפעילו מעבר אוטומטי, או השאירו את ההמנון האהוב בלופ.</p>
+          <div class="audio-player">
+            <audio id="mainAudio" preload="metadata"></audio>
+            <div class="now-playing"><div class="audio-art">♫</div><div><small>מתנגן עכשיו</small><strong id="nowPlaying">בחרו המנון</strong></div></div>
+            <div class="audio-progress"><span id="audioCurrent">0:00</span><input id="audioProgress" type="range" min="0" max="1000" value="0" aria-label="מיקום בשיר"><span id="audioDuration">0:00</span></div>
+            <div class="audio-controls"><button id="prevSong" aria-label="הקודם">⏮</button><button id="playSong" class="audio-main" aria-label="הפעלה">▶</button><button id="nextSong" aria-label="הבא">⏭</button></div>
+            <div class="audio-options"><button id="shuffleSongs">⇄ ערבוב</button><button id="loopSongs">↻ לופ כבוי</button><label><span>🔊</span><input id="audioVolume" type="range" min="0" max="1" step="0.05" value="1"></label></div>
+          </div>
+        </div>
+        <div id="songsList" class="songs-list reveal"></div>
+      </div>
+    </section>
+
+    <section id="testimonials" class="section testimonials-section">
+      <div class="container">
+        <div class="section-heading reveal"><div><span class="eyebrow">מילים מהלב</span><h2 id="testimonialsTitle">מה ההורים מספרים</h2></div><p id="testimonialsText">תגובות אמיתיות מהמשפחות שחוו את הקעמפ איתנו.</p></div>
+        <div id="testimonialGrid" class="testimonial-grid"></div>
+        <details class="testimonial-submit reveal"><summary>כתיבת תגובה חדשה</summary><form id="testimonialForm" class="public-form"><div class="form-grid"><label>שם<input name="name" required></label><label>הקשר לילד<input name="relation" placeholder="אמא של…, אבא של…"></label><label>טלפון<input name="phone" inputmode="tel"></label><label>דירוג<select name="rating"><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option></select></label><label class="full">התגובה<textarea name="message" rows="4" required minlength="10"></textarea></label></div><button class="btn btn-primary" type="submit">שליחת תגובה לאישור</button><p id="testimonialStatus" class="form-status"></p></form></details>
+      </div>
+    </section>
+
+    <section id="newsletterSection" class="newsletter-section">
+      <div class="container newsletter-card reveal"><div><span class="eyebrow eyebrow-light">נשארים בעניינים</span><h2 id="updatesTitle">לקבלת עדכונים מהקעמפ</h2><p id="updatesText">גלריות חדשות, סרטונים ועדכונים חשובים ישירות אליכם.</p></div><form id="subscribe" class="newsletter-form"><input name="name" required placeholder="שם מלא"><input name="phone" inputmode="tel" required placeholder="טלפון"><input name="email" type="email" required placeholder="אימייל"><label class="consent"><input name="consent" type="checkbox" required><span>אני מאשר/ת קבלת עדכונים מהקעמפ</span></label><button class="btn btn-accent" type="submit">מצטרפים לעדכונים</button><p id="subStatus" class="form-status"></p></form></div>
+    </section>
+
+    <section id="contact" class="section contact-section">
+      <div class="container"><div class="section-heading reveal"><div><span class="eyebrow">אנחנו כאן</span><h2 id="contactTitle">יצירת קשר</h2></div><p id="contactText">לשאלות, הרשמה ופרטים נוספים — נשמח לדבר.</p></div><div id="contactCards" class="contact-grid"></div></div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="container"><div id="footerLogos" class="footer-logos"></div><div class="footer-bottom"><div><strong id="footerCampName">קעמפ גן ישראל חדרה</strong><span id="footerText">כל החוויות. במקום אחד.</span></div><span>© <span id="year"></span> כל הזכויות שמורות</span><a href="/admin/" rel="nofollow">כניסת מנהל</a></div></div></footer>
+  <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+  <script src="/assets/js/app.js" defer></script>
+</body>
+</html>

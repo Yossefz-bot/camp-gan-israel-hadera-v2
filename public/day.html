@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f2b55">
+  <title>גלריית הקעמפ</title>
+  <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body class="day-page">
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-logo-wrap">GI</span><span class="brand-copy"><strong>קעמפ גן ישראל חדרה</strong><small>גלריות הקעמפ</small></span></a>
+    <a class="back-button" href="/#gallery">חזרה לכל הגלריות ←</a>
+    <button id="themeToggle" class="theme-toggle" type="button" aria-label="החלפת מצב תצוגה">☾</button>
+  </header>
+
+  <main>
+    <section class="day-hero"><div class="container day-hero-grid"><div><a class="back-button" href="/#gallery">← לכל הימים</a><span class="eyebrow">גלריית היום</span><h1 id="title">טוען…</h1><p id="dayDate"></p><p id="description"></p></div><div id="mediaCount" class="result-count"></div></div></section>
+    <section class="container"><div id="summaryVideoSection" class="day-summary-video hidden"><div id="summaryVideo" class="video-host aspect-landscape"></div></div></section>
+    <section class="container">
+      <div class="gallery-toolbar">
+        <label class="search-box"><span>⌕</span><input id="mediaSearch" type="search" placeholder="חיפוש בתוך הגלריה"></label>
+        <button id="favoriteFilter" type="button">♡ מועדפים</button>
+        <button id="downloadFavorites" type="button">↓ הורדת מועדפים</button>
+        <button id="downloadAll" type="button">↓ הורדת כל התמונות</button>
+      </div>
+      <div id="media" class="media-grid"></div>
+      <button id="loadMore" class="btn btn-primary load-more hidden" type="button">טעינת תמונות נוספות</button>
+    </section>
+  </main>
+
+  <div id="viewer" class="viewer" role="dialog" aria-modal="true" aria-hidden="true">
+    <header class="viewer-top"><span id="viewerCounter"></span><div class="viewer-actions"><button id="viewerFavorite" type="button" aria-label="הוספה למועדפים">♡</button><button id="viewerShare" type="button" aria-label="שיתוף">↗</button><a id="viewerDownload" href="#" download aria-label="הורדה">↓</a><button id="viewerClose" type="button" aria-label="סגירה">×</button></div></header>
+    <div id="viewerStage" class="viewer-stage"><button id="viewerPrev" class="viewer-arrow prev" type="button">›</button><div id="viewerContent"></div><button id="viewerNext" class="viewer-arrow next" type="button">‹</button></div>
+    <div id="viewerCaption" class="viewer-caption"></div>
+  </div>
+  <div id="downloadProgress" class="download-progress hidden"><div class="download-card"><h2>מכין קובץ להורדה</h2><p id="downloadText">מוריד את התמונות…</p><progress id="downloadBar" max="100" value="0"></progress><button id="cancelDownload" class="btn btn-soft" type="button">ביטול</button></div></div>
+  <div id="toastRegion" class="toast-region"></div>
+  <script src="/assets/js/day.js" defer></script>
+</body>
+</html>

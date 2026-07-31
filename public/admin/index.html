@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <title>ניהול אתר הקעמפ</title>
+  <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body class="admin-body">
+  <div id="adminToast" class="admin-toast" aria-live="polite"></div>
+  <div id="adminBusy" class="admin-busy hidden"><span class="spinner"></span><b id="adminBusyText">מבצע פעולה…</b></div>
+
+  <section id="loginScreen" class="admin-login-screen">
+    <div class="admin-login-card">
+      <div class="admin-login-logo">GI</div>
+      <span class="eyebrow">מערכת ניהול מאובטחת</span>
+      <h1>ניהול אתר הקעמפ</h1>
+      <p>כל מה שהיה במערכת הישנה — ימים, גלריות, המנונים, תגובות ועדכונים — יחד עם D1 ו־R2.</p>
+      <form id="loginForm" class="stack-form"><label>קוד מנהל<input id="tokenInput" type="password" autocomplete="current-password" required autofocus></label><button class="admin-btn primary" type="submit">כניסה למערכת</button></form>
+      <p id="loginStatus" class="form-status"></p>
+    </div>
+  </section>
+
+  <div id="adminApp" class="admin-app hidden">
+    <aside id="adminSidebar" class="admin-sidebar">
+      <div class="sidebar-brand"><span>GI</span><div><strong>אתר הקעמפ</strong><small>מרכז ניהול</small></div></div>
+      <nav class="admin-tabs" aria-label="ניווט ניהול">
+        <button class="active" data-tab="dashboard">⌂ <span>לוח בקרה</span></button>
+        <button data-tab="days">▦ <span>ימים וגלריות</span></button>
+        <button data-tab="upload">⬆ <span>העלאת מדיה</span></button>
+        <button data-tab="site">✦ <span>תוכן ועיצוב</span></button>
+        <button data-tab="media">▧ <span>מדיה כללית</span></button>
+        <button data-tab="songs">♫ <span>המנונים</span></button>
+        <button data-tab="messages">◉ <span>הודעות באתר</span></button>
+        <button data-tab="testimonials">❝ <span>תגובות הורים</span></button>
+        <button data-tab="subscribers">✉ <span>נרשמים לעדכונים</span></button>
+        <button data-tab="tools">⚙ <span>כלים ואבטחה</span></button>
+      </nav>
+      <div class="sidebar-bottom"><a href="/" target="_blank" rel="noopener">פתיחת האתר ↗</a><button id="logoutButton">יציאה</button></div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div><small id="adminCampName">קעמפ גן ישראל חדרה</small><strong id="activeTabTitle">לוח בקרה</strong></div>
+        <div class="admin-topbar-actions"><button id="previewButton">צפייה באתר ↗</button><button id="mobileMenuButton" aria-label="פתיחת תפריט">☰</button></div>
+      </header>
+
+      <main class="admin-content">
+        <section id="panel-dashboard" class="admin-panel">
+          <div class="admin-page-heading"><div><span class="eyebrow">תמונת מצב</span><h1>לוח בקרה</h1></div><button id="refreshDashboard" class="admin-btn primary">רענון נתונים</button></div>
+          <div id="bindingAlert" class="admin-alert hidden"></div>
+          <div class="stats-grid">
+            <article><span>ימים</span><strong id="statDays">0</strong><small>פעילים ומוסתרים</small></article>
+            <article><span>תמונות</span><strong id="statImages">0</strong><small>בכל הגלריות</small></article>
+            <article><span>סרטונים</span><strong id="statVideos">0</strong><small>סרטוני סיכום ומדיה</small></article>
+            <article><span>המנונים</span><strong id="statSongs">0</strong><small>ברשימת ההשמעה</small></article>
+            <article><span>תגובות בהמתנה</span><strong id="statPendingTestimonials">0</strong><small>דורשות אישור</small></article>
+            <article><span>נרשמים</span><strong id="statSubscribers">0</strong><small>לקבלת עדכונים</small></article>
+          </div>
+          <div class="quick-grid">
+            <button data-go-tab="days"><span>📷</span><div><strong>ניהול גלריות</strong><small>יצירה, עריכה ותמונות שער</small></div></button>
+            <button data-go-tab="upload"><span>☁</span><div><strong>העלאת קבצים</strong><small>מספר קבצים ישירות ל־R2</small></div></button>
+            <button data-go-tab="site"><span>🎨</span><div><strong>עריכת האתר</strong><small>טקסטים, צבעים, לוגואים ו־SEO</small></div></button>
+            <button data-go-tab="testimonials"><span>💬</span><div><strong>תגובות הורים</strong><small>אישור, דחייה ועריכה</small></div></button>
+          </div>
+          <article class="admin-card"><div class="card-head"><h2>המדיה האחרונה</h2><button class="text-button" data-go-tab="media">לכל המדיה</button></div><div id="recentMedia" class="compact-list"></div></article>
+        </section>
+
+        <section id="panel-days" class="admin-panel hidden">
+          <div class="admin-page-heading"><div><span class="eyebrow">תוכן יומי</span><h1>ימים וגלריות</h1></div><button id="newDayButton" class="admin-btn primary">+ יצירת יום חדש</button></div>
+          <form id="newDayForm" class="admin-card hidden"><div class="card-head"><h2>יום חדש</h2><button id="cancelNewDay" class="text-button" type="button">סגירה</button></div><div class="admin-form-grid">
+            <label>שם היום<input name="title" required placeholder="יום שני — טיול ופארק מים"></label><label>תווית קצרה<input name="label" placeholder="היום השני"></label>
+            <label>תאריך<input id="newDayDate" name="date" type="date"><small id="newDayHebrewDate">התאריך העברי יוצג כאן</small></label><label>כתובת באנגלית<input name="slug" required placeholder="day-2"></label>
+            <label>סדר תצוגה<input name="sort_order" type="number" value="0"></label><label>יחס סרטון<select name="video_aspect"><option value="landscape">אופקי 16:9</option><option value="portrait">אנכי 9:16</option><option value="square">ריבוע 1:1</option></select></label>
+            <label class="full">קישור סרטון סיכום<input name="video_url" type="url" placeholder="YouTube, Vimeo או קישור ישיר"></label><label class="full">תיאור<textarea name="description" rows="3"></textarea></label>
+          </div><button class="admin-btn primary" type="submit">יצירת היום</button></form>
+          <div id="daysList" class="days-admin-list"></div>
+        </section>
+
+        <section id="panel-upload" class="admin-panel hidden">
+          <div class="admin-page-heading"><div><span class="eyebrow">Cloudflare R2</span><h1>העלאת מדיה</h1></div></div>
+          <form id="uploadForm" class="admin-card"><div class="admin-form-grid">
+            <label>יעד<select id="uploadDay" name="day_id"><option value="">מדיה כללית</option></select></label><label>סוג<select id="uploadKind" name="kind"><option value="image">תמונות</option><option value="video">סרטונים</option><option value="audio">המנונים / שמע</option></select></label>
+            <label>קטגוריה<select id="uploadCategory" name="category"><option value="gallery">גלריה</option><option value="general">מדיה כללית</option><option value="song">המנונים</option></select></label><label>כותרת משותפת<input name="title" placeholder="לא חובה"></label>
+            <label class="full upload-drop" id="uploadDrop"><input id="uploadFiles" name="files" type="file" multiple required><span>גרור קבצים לכאן או לחץ לבחירה</span><small>אפשר לבחור כמה תמונות יחד. מומלץ להשתמש ב־JPG/WebP לתמונות וב־MP4 לסרטונים.</small></label>
+          </div><div id="selectedFiles" class="selected-files"></div><button class="admin-btn primary full-width" type="submit">העלאת הקבצים</button><progress id="uploadProgress" max="100" value="0"></progress><p id="uploadStatus" class="form-status"></p></form>
+        </section>
+
+        <section id="panel-site" class="admin-panel hidden">
+          <div class="admin-page-heading"><div><span class="eyebrow">מראה ותוכן</span><h1>תוכן ועיצוב האתר</h1></div><button id="saveSettingsTop" class="admin-btn primary">שמירת שינויים</button></div>
+          <form id="settingsForm" class="admin-card settings-form">
+            <div class="settings-group"><h2>זהות ויצירת קשר</h2><div class="admin-form-grid"><label>שם הקעמפ<input name="camp_name"></label><label>עיר<input name="city"></label><label>טלפון<input name="phone"></label><label>WhatsApp בפורמט 972<input name="whatsapp"></label><label>אימייל<input name="email" type="email"></label><label>כתובת<input name="address"></label></div></div>
+            <div class="settings-group"><h2>אזור הפתיחה</h2><div class="admin-form-grid"><label>שורה קטנה<input name="hero_kicker"></label><label>כותרת ראשית<input name="hero_title"></label><label class="full">טקסט פתיחה<textarea name="hero_text" rows="3"></textarea></label><label class="full">תמונת רקע<div class="card-head"><input name="hero_image_key"><button class="admin-btn ghost pick-media" type="button" data-field="hero_image_key">בחירה מהמדיה</button></div></label><label class="full">קישור סרטון הרשמה<input name="registration_video_url"></label><label>יחס סרטון<select name="registration_video_aspect"><option value="landscape">אופקי 16:9</option><option value="portrait">אנכי 9:16</option><option value="square">ריבוע 1:1</option></select></label><label>טקסט כפתור הרשמה<input name="registration_button_text"></label><label class="full">קישור הרשמה<input name="registration_button_url" type="url"></label></div></div>
+            <div class="settings-group"><h2>רצועת הסיפור</h2><div class="admin-form-grid"><label>שורה קטנה<input name="story_kicker"></label><label>כותרת<input name="story_title"></label><label class="full">מלל<textarea name="story_text" rows="4"></textarea></label><label class="full">תמונת רקע<div class="card-head"><input name="story_image_key"><button class="admin-btn ghost pick-media" type="button" data-field="story_image_key">בחירה מהמדיה</button></div></label></div></div>
+            <div class="settings-group"><h2>כותרות אזורים</h2><div class="admin-form-grid"><label>כותרת גלריות<input name="gallery_title"></label><label>כותרת המנונים<input name="songs_title"></label><label class="full">טקסט גלריות<textarea name="gallery_text" rows="2"></textarea></label><label class="full">טקסט המנונים<textarea name="songs_text" rows="2"></textarea></label><label>כותרת תגובות<input name="testimonials_title"></label><label>כותרת עדכונים<input name="updates_title"></label><label class="full">טקסט תגובות<textarea name="testimonials_text" rows="2"></textarea></label><label class="full">טקסט עדכונים<textarea name="updates_text" rows="2"></textarea></label><label>כותרת יצירת קשר<input name="contact_title"></label><label class="full">טקסט יצירת קשר<textarea name="contact_text" rows="2"></textarea></label></div></div>
+            <div class="settings-group"><h2>לוגו ותחתית</h2><div class="admin-form-grid"><label class="full">לוגו ראשי<div class="card-head"><input name="logo_key"><button class="admin-btn ghost pick-media" type="button" data-field="logo_key">בחירה מהמדיה</button></div></label><label>לוגו תחתון 1<input name="footer_logo_1_key"></label><label>לוגו תחתון 2<input name="footer_logo_2_key"></label><label>לוגו תחתון 3<input name="footer_logo_3_key"></label><label class="full">טקסט בתחתית<input name="footer_text"></label></div></div>
+            <div class="settings-group"><h2>צבעים</h2><div class="color-grid"><label>ראשי<div><input type="color" data-color="theme_primary"><input name="theme_primary"></div></label><label>משני<div><input type="color" data-color="theme_secondary"><input name="theme_secondary"></div></label><label>הדגשה<div><input type="color" data-color="theme_accent"><input name="theme_accent"></div></label></div></div>
+            <div class="settings-group"><h2>Google ו־SEO</h2><div class="admin-form-grid"><label class="full">כותרת לתוצאות Google<input name="seo_title"></label><label class="full">תיאור לתוצאות Google<textarea name="seo_description" rows="3"></textarea></label><label class="full">מילות חיפוש<input name="seo_keywords"></label><label>סדר התמונות<select name="gallery_sort"><option value="oldest">מהישן לחדש</option><option value="newest">מהחדש לישן</option></select></label></div></div>
+            <button class="admin-btn primary" type="submit">שמירת כל ההגדרות</button>
+          </form>
+        </section>
+
+        <section id="panel-media" class="admin-panel hidden">
+          <div class="admin-page-heading"><div><span class="eyebrow">לוגו, באנרים וגלריות</span><h1>ניהול מדיה</h1></div><button class="admin-btn primary" data-go-tab="upload">+ העלאת קבצים</button></div>
+          <div class="filter-bar"><input id="mediaSearch" type="search" placeholder="חיפוש לפי שם"><select id="mediaKindFilter"><option value="">כל הסוגים</option><option value="image">תמונות</option><option value="video">סרטונים</option><option value="audio">שמע</option></select><select id="mediaDayFilter"><option value="">כל הימים</option></select></div>
+          <div id="mediaGrid" class="media-admin-grid"></div>
+        </section>
+
+        <section id="panel-songs" class="admin-panel hidden"><div class="admin-page-heading"><div><span class="eyebrow">פלייליסט</span><h1>המנוני הקעמפ</h1></div><button class="admin-btn primary" id="uploadSongButton">+ העלאת המנון</button></div><div id="songsAdminList" class="songs-admin-list"></div></section>
+
+        <section id="panel-messages" class="admin-panel hidden">
+          <div class="admin-page-heading"><div><span class="eyebrow">עדכון מהיר</span><h1>הודעות באתר</h1></div></div>
+          <form id="messageForm" class="admin-card"><div class="admin-form-grid"><label>כותרת<input name="title" required></label><label>סגנון<select name="tone"><option value="info">מידע</option><option value="success">חיובי</option><option value="warning">חשוב</option></select></label><label class="full">תוכן<textarea name="body" rows="3" required></textarea></label><label>טקסט כפתור<input name="button_text"></label><label>קישור כפתור<input name="button_url" type="url"></label><label><span>הצגה באתר</span><select name="is_active"><option value="1">פעילה</option><option value="0">לא פעילה</option></select></label></div><button class="admin-btn primary" type="submit">הוספת הודעה</button></form>
+          <div id="messagesList" class="messages-list" style="margin-top:15px"></div>
+        </section>
+
+        <section id="panel-testimonials" class="admin-panel hidden">
+          <div class="admin-page-heading"><div><span class="eyebrow">תגובות</span><h1>תגובות הורים</h1></div></div>
+          <form id="testimonialAdminForm" class="admin-card"><div class="admin-form-grid"><label>שם<input name="name" required></label><label>הקשר לילד<input name="relation"></label><label>טלפון<input name="phone"></label><label>דירוג<select name="rating"><option value="5">5</option><option value="4">4</option><option value="3">3</option></select></label><label class="full">תגובה<textarea name="message" rows="3" required></textarea></label></div><button class="admin-btn primary" type="submit">הוספת תגובה מאושרת</button></form>
+          <div class="filter-bar" style="margin-top:15px"><select id="testimonialFilter"><option value="">כל התגובות</option><option value="pending">ממתינות</option><option value="approved">מאושרות</option><option value="rejected">נדחו</option></select></div><div id="testimonialsList" class="testimonials-admin-list"></div>
+        </section>
+
+        <section id="panel-subscribers" class="admin-panel hidden"><div class="admin-page-heading"><div><span class="eyebrow">רשימת תפוצה</span><h1>נרשמים לעדכונים</h1></div><button id="exportSubscribers" class="admin-btn primary">ייצוא ל־CSV</button></div><div class="filter-bar"><input id="subscriberSearch" type="search" placeholder="חיפוש שם, טלפון או אימייל"><select id="subscriberStatus"><option value="">כל הסטטוסים</option><option value="active">פעילים</option><option value="unsubscribed">הוסרו</option></select></div><div id="subscribersWrap" class="admin-table-wrap"></div></section>
+
+        <section id="panel-tools" class="admin-panel hidden"><div class="admin-page-heading"><div><span class="eyebrow">תחזוקה ואבטחה</span><h1>כלים</h1></div></div><div class="tools-grid"><article class="admin-card"><h2>בדיקת חיבורים</h2><p>בדיקה מהירה של קוד המנהל, D1 ו־R2.</p><button id="healthButton" class="admin-btn primary">בדיקה עכשיו</button><div id="healthResult" class="health-grid"></div></article><article class="admin-card"><h2>רענון האתר</h2><p>Cloudflare שומר נתונים ציבוריים לזמן קצר. רענון קשיח בדפדפן מציג מיד את השינויים.</p><button id="hardRefreshSite" class="admin-btn ghost">פתיחת האתר ברענון</button></article><article class="admin-card"><h2>שינוי קוד מנהל</h2><p>הקוד נשמר כ־Secret ב־Cloudflare ואינו מוצג במערכת.</p><a class="admin-btn ghost" href="https://dash.cloudflare.com/" target="_blank" rel="noopener">פתיחת Cloudflare</a></article></div></section>
+      </main>
+    </div>
+  </div>
+
+  <div id="mediaPickerModal" class="admin-modal hidden"><div class="admin-modal-card"><div class="card-head"><div><span class="eyebrow">בחירה מהמדיה</span><h2 id="pickerTitle">בחירת תמונה</h2></div><button id="closePicker" class="admin-btn ghost">סגירה</button></div><div id="pickerGrid" class="picker-grid" style="margin-top:18px"></div></div></div>
+  <script src="/assets/js/admin.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+קעמפ גן ישראל חדרה V8 — התחלה נקייה
+
+1. העלה את כל הפריטים שבתיקייה לשורש מאגר GitHub החדש.
+2. חבר את המאגר ל-Cloudflare Pages.
+3. הגדר:
+   Framework preset: None
+   Build command: exit 0
+   Build output directory: public
+4. בשלב הראשון האתר הסטטי יעלה גם בלי D1/R2.
+5. אחר כך ניצור D1 ו-R2 חדשים ונוסיף אותם ל-wrangler.jsonc.
+
+מבנה נכון:
+public/
+functions/
+migrations/
+README.md
+wrangler.jsonc
+START-HERE-HEBREW.txt
+
+כתובת פאנל הניהול לאחר הפריסה:
+/admin/
