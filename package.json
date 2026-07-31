@@ -1,0 +1,8 @@
+{
+  "name": "camp-gan-israel-hadera-v9",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check.mjs"
+  }
+}
