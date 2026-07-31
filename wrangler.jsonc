@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "camp-gan-israel-hadera-v2",
+  "pages_build_output_dir": "public",
+  "compatibility_date": "2026-07-31"
+
+  // לאחר יצירת D1 ו-R2 אפשר להוסיף כאן את ה-bindings,
+  // או להגדיר אותם דרך Cloudflare Dashboard.
+  // "d1_databases": [{
+  //   "binding": "DB",
+  //   "database_name": "camp-database-v2",
+  //   "database_id": "PASTE-DATABASE-ID-HERE"
+  // }],
+  // "r2_buckets": [{
+  //   "binding": "MEDIA",
+  //   "bucket_name": "camp-media-v2"
+  // }]
+}

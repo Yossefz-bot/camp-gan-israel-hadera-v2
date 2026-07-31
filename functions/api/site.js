@@ -1,69 +1,22 @@
-import { DEFAULT_SETTINGS, json, loadSettings, mediaUrl, setupState } from './_shared.js';
-
-function decorateDay(day) {
-  const coverKey = day.cover_key || day.fallback_cover_key || '';
-  return {
-    ...day,
-    cover_key: coverKey,
-    cover_url: mediaUrl(coverKey),
-    video_src: day.video_key ? mediaUrl(day.video_key) : day.video_url || ''
-  };
-}
-
-function decorateMedia(item) {
-  return { ...item, url: mediaUrl(item.object_key), download_url: mediaUrl(item.object_key, true) };
-}
-
 export async function onRequestGet({ env }) {
-  const fallback = {
-    settings: { ...DEFAULT_SETTINGS }, days: [], latest_day: null, announcement: null,
-    songs: [], testimonials: [], totals: { days: 0, photos: 0, videos: 0, songs: 0 },
-    setup: { required: true, db_binding: Boolean(env.DB), r2_binding: Boolean(env.MEDIA), database_ready: false }
-  };
-  if (!env.DB) return json(fallback, 200, { 'cache-control': 'public,max-age=15' });
-
   try {
-    const [settings, daysResult, announcement, songsResult, testimonialsResult, totals] = await Promise.all([
-      loadSettings(env),
-      env.DB.prepare(`
-        SELECT d.*,
-          (SELECT COUNT(*) FROM media m WHERE m.day_id=d.id AND m.status='published') AS media_count,
-          (SELECT COUNT(*) FROM media m WHERE m.day_id=d.id AND m.kind='image' AND m.status='published') AS photo_count,
-          (SELECT COUNT(*) FROM media m WHERE m.day_id=d.id AND m.kind='video' AND m.status='published') AS video_count,
-          (SELECT object_key FROM media m WHERE m.day_id=d.id AND m.kind='image' AND m.status='published' ORDER BY m.is_featured DESC,m.sort_order,m.id LIMIT 1) AS fallback_cover_key
-        FROM days d
-        WHERE d.status='published'
-        ORDER BY d.sort_order ASC, CASE WHEN d.date='' THEN 1 ELSE 0 END, d.date DESC, d.id DESC
-      `).all(),
-      env.DB.prepare(`
-        SELECT * FROM announcements
-        WHERE status='published'
-          AND (starts_at='' OR starts_at<=datetime('now'))
-          AND (ends_at='' OR ends_at>=datetime('now'))
-        ORDER BY id DESC LIMIT 1
-      `).first(),
-      env.DB.prepare("SELECT * FROM media WHERE kind='audio' AND status='published' ORDER BY sort_order,id").all(),
-      env.DB.prepare("SELECT id,name,relation,rating,message FROM testimonials WHERE status='approved' ORDER BY sort_order,id DESC LIMIT 24").all(),
-      env.DB.prepare(`SELECT
-        (SELECT COUNT(*) FROM days WHERE status='published') AS days,
-        (SELECT COUNT(*) FROM media WHERE kind='image' AND status='published') AS photos,
-        (SELECT COUNT(*) FROM media WHERE kind='video' AND status='published') AS videos,
-        (SELECT COUNT(*) FROM media WHERE kind='audio' AND status='published') AS songs
-      `).first()
-    ]);
-    const days = (daysResult.results || []).map(decorateDay);
-    return json({
-      settings,
-      days,
-      latest_day: days[0] || null,
-      announcement,
-      songs: (songsResult.results || []).map(decorateMedia),
-      testimonials: testimonialsResult.results || [],
-      totals: totals || { days: 0, photos: 0, videos: 0, songs: 0 },
-      setup: { required: !env.MEDIA, db_binding: true, r2_binding: Boolean(env.MEDIA), database_ready: true }
-    }, 200, { 'cache-control': 'public,max-age=60,stale-while-revalidate=300' });
-  } catch (error) {
-    console.error('site api', error);
-    return json({ ...fallback, setup: setupState(error, env) }, 200, { 'cache-control': 'public,max-age=10' });
-  }
+    const settingsRows = await env.DB.prepare('SELECT key,value FROM settings').all();
+    const settings = Object.fromEntries((settingsRows.results || []).map(r => [r.key, r.value]));
+    const days = await env.DB.prepare(`
+      SELECT d.*,
+        (SELECT COUNT(*) FROM media m WHERE m.day_id=d.id AND m.is_published=1) AS media_count,
+        (SELECT COUNT(*) FROM media m WHERE m.day_id=d.id AND m.kind='image' AND m.is_published=1) AS photo_count,
+        (SELECT object_key FROM media m WHERE m.day_id=d.id AND m.kind='image' AND m.is_published=1 ORDER BY m.sort_order,m.id LIMIT 1) AS fallback_cover_key
+      FROM days d WHERE d.is_published=1
+      ORDER BY d.sort_order ASC, COALESCE(d.date,'') DESC, d.id DESC
+    `).all();
+    const message = await env.DB.prepare('SELECT * FROM messages WHERE is_active=1 ORDER BY id DESC LIMIT 1').first();
+    const songs = await env.DB.prepare("SELECT * FROM media WHERE kind='audio' AND is_published=1 ORDER BY sort_order,id").all();
+    const testimonials = await env.DB.prepare("SELECT id,name,relation,rating,message FROM testimonials WHERE status='approved' ORDER BY sort_order,id DESC LIMIT 24").all();
+    const totals = await env.DB.prepare(`SELECT
+      (SELECT COUNT(*) FROM days WHERE is_published=1) AS days,
+      (SELECT COUNT(*) FROM media WHERE kind='image' AND is_published=1) AS photos,
+      (SELECT COUNT(*) FROM media WHERE kind='audio' AND is_published=1) AS songs`).first();
+    return Response.json({ settings, days:days.results||[], message, songs:songs.results||[], testimonials:testimonials.results||[], totals:totals||{} }, { headers:{'cache-control':'public,max-age=60'} });
+  } catch (error) { return Response.json({ error:error.message }, { status:500 }); }
 }

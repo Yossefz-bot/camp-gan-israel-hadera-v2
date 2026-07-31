@@ -1,29 +1,15 @@
-# Camp Gan Israel Hadera — V10 Pro
+# Camp Gan Israel Hadera — V9 Complete
 
-A full-stack Cloudflare Pages application for a camp website and content-management dashboard.
+מערכת Cloudflare Pages מלאה בעברית וב־RTL, הכוללת אתר ציבורי, פאנל ניהול, D1 ו־R2.
 
-## Stack
+## התקנה חדשה
 
-- Cloudflare Pages
-- Pages Functions
-- Cloudflare D1 (`DB` binding)
-- Cloudflare R2 (`MEDIA` binding)
-- Vanilla HTML, CSS and JavaScript; no frontend build step
-- Signed HttpOnly admin sessions using Web Crypto
+1. העלו את תוכן הפרויקט ל־GitHub.
+2. חברו את המאגר ל־Cloudflare Pages.
+3. הגדירו Output directory בשם `public`.
+4. צרו D1 והריצו פעם אחת את `migrations/0000_fresh_install.sql`.
+5. צרו R2 והגדירו bindings בשם `DB` ו־`MEDIA`.
+6. הגדירו Secret בשם `ADMIN_TOKEN`.
+7. פרסו מחדש.
 
-## Local checks
-
-```bash
-npm install
-npm run check
-```
-
-## Local development
-
-Copy `.dev.vars.example` to `.dev.vars`, configure the bindings using `wrangler.example.jsonc`, then run:
-
-```bash
-npx wrangler pages dev public --d1 DB=<DATABASE_ID> --r2 MEDIA=camp-media
-```
-
-See `START-HERE-HEBREW.md` for the dashboard-first deployment workflow.
+פאנל הניהול נמצא ב־`/admin/`.
