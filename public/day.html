@@ -3,49 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#ff6b16">
-  <meta name="description" content="גלריית יום בקעמפ גן ישראל חדרה">
+  <meta name="theme-color" content="#0f2b55">
   <title>גלריית הקעמפ</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/assets/css/main.css">
-  <script src="/assets/js/day.js" defer></script>
 </head>
 <body class="day-page">
-  <a class="skip-link" href="#main">דלג לתוכן</a>
-  <header class="site-header compact-header">
-    <div class="container header-inner">
-      <a class="brand" href="/"><span class="brand-mark">GI</span><span class="brand-copy"><strong>קעמפ גן ישראל חדרה</strong><small>גלריית היום</small></span></a>
-      <div class="header-actions"><a class="button button-small button-ghost" href="/#galleries">← לכל הגלריות</a><button class="icon-button" id="theme-toggle" aria-label="מצב תצוגה"><svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg></button></div>
-    </div>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-logo-wrap">GI</span><span class="brand-copy"><strong>קעמפ גן ישראל חדרה</strong><small>גלריות הקעמפ</small></span></a>
+    <a class="back-button" href="/#gallery">חזרה לכל הגלריות ←</a>
+    <button id="themeToggle" class="theme-toggle" type="button" aria-label="החלפת מצב תצוגה">☾</button>
   </header>
 
-  <main id="main">
-    <section class="day-hero" id="day-hero">
-      <div class="day-hero-bg" id="day-cover"></div><div class="day-hero-overlay"></div>
-      <div class="container day-hero-content"><a class="day-back" href="/#galleries">← חזרה לגלריות</a><span class="pill" id="day-label">יום בקעמפ</span><h1 id="day-title">טוען את הגלריה...</h1><div class="day-meta"><span id="day-date"></span><span id="day-count"></span></div><p id="day-description"></p><div class="day-actions"><button class="button button-light" id="share-day">שיתוף היום</button><button class="button button-glass" id="favorites-toggle">♥ מועדפים <span id="favorites-count">0</span></button></div></div>
-      <div class="hero-wave" aria-hidden="true"><svg viewBox="0 0 1440 120" preserveAspectRatio="none"><path d="M0 72C236 135 395 11 667 66c259 52 501 52 773-9v63H0z"></path></svg></div>
-    </section>
-
-    <section class="section day-video-section is-hidden" id="day-video-section"><div class="container"><div class="section-heading centered"><span class="eyebrow">צפו במה שהיה</span><h2>סרטון <em>היום</em></h2></div><div class="day-video-wrap" id="day-video-wrap"></div></div></section>
-
-    <section class="section day-story-section is-hidden" id="day-story-section"><div class="container"><article class="day-story-card"><span class="story-quote">״</span><div><span class="eyebrow">הסיפור של היום</span><h2>רגעים ששווה לזכור</h2><p id="day-story"></p></div></article></div></section>
-
-    <section class="section day-gallery-section">
-      <div class="container">
-        <div class="section-heading split-heading"><div><span class="eyebrow">פותחים אלבום</span><h2>התמונות של <em>היום</em></h2></div><div class="day-gallery-tools"><button class="chip active" data-kind="all">הכול</button><button class="chip" data-kind="image">תמונות</button><button class="chip" data-kind="video">סרטונים</button><button class="chip" id="selection-mode">בחירת תמונות</button></div></div>
-        <div class="selection-bar is-hidden" id="selection-bar"><div><strong><span id="selected-count">0</span> נבחרו</strong><small>אפשר להוריד או להסיר מהמועדפים</small></div><div><button class="button button-small button-ghost" id="select-all">בחר הכול</button><button class="button button-small button-primary" id="download-selected">הורדת הנבחרות</button><button class="icon-button" id="clear-selection" aria-label="ביטול בחירה">×</button></div></div>
-        <div class="masonry-grid" id="media-grid" aria-live="polite"><div class="masonry-skeleton"></div><div class="masonry-skeleton tall"></div><div class="masonry-skeleton"></div><div class="masonry-skeleton wide"></div></div>
-        <div class="empty-state is-hidden" id="media-empty"><span>📷</span><h3>עוד אין כאן מדיה</h3><p>התמונות והסרטונים יופיעו כאן מיד לאחר הפרסום.</p></div>
-        <div class="load-more-wrap"><button class="button button-ghost is-hidden" id="load-more">טען עוד תמונות</button></div>
+  <main>
+    <section class="day-hero"><div class="container day-hero-grid"><div><a class="back-button" href="/#gallery">← לכל הימים</a><span class="eyebrow">גלריית היום</span><h1 id="title">טוען…</h1><p id="dayDate"></p><p id="description"></p></div><div id="mediaCount" class="result-count"></div></div></section>
+    <section class="container"><div id="summaryVideoSection" class="day-summary-video hidden"><div id="summaryVideo" class="video-host aspect-landscape"></div></div></section>
+    <section class="container">
+      <div class="gallery-toolbar">
+        <label class="search-box"><span>⌕</span><input id="mediaSearch" type="search" placeholder="חיפוש בתוך הגלריה"></label>
+        <button id="favoriteFilter" type="button">♡ מועדפים</button>
+        <button id="downloadFavorites" type="button">↓ הורדת מועדפים</button>
+        <button id="downloadAll" type="button">↓ הורדת כל התמונות</button>
       </div>
+      <div id="media" class="media-grid"></div>
+      <button id="loadMore" class="btn btn-primary load-more hidden" type="button">טעינת תמונות נוספות</button>
     </section>
   </main>
 
-  <footer class="site-footer simple-footer"><div class="container footer-bottom"><span>© <span id="current-year"></span> קעמפ גן ישראל חדרה</span><a href="/">חזרה לדף הבית</a></div></footer>
-
-  <dialog class="lightbox" id="lightbox"><div class="lightbox-shell"><button class="lightbox-close" id="lightbox-close" aria-label="סגירה">×</button><button class="lightbox-nav prev" id="lightbox-prev" aria-label="הקודם">‹</button><div class="lightbox-stage" id="lightbox-stage"></div><button class="lightbox-nav next" id="lightbox-next" aria-label="הבא">›</button><div class="lightbox-footer"><div><strong id="lightbox-title"></strong><small id="lightbox-caption"></small></div><div><button class="icon-button light" id="lightbox-favorite" aria-label="הוספה למועדפים">♥</button><a class="icon-button light" id="lightbox-download" download aria-label="הורדה">↓</a></div></div></div></dialog>
-
-  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+  <div id="viewer" class="viewer" role="dialog" aria-modal="true" aria-hidden="true">
+    <header class="viewer-top"><span id="viewerCounter"></span><div class="viewer-actions"><button id="viewerFavorite" type="button" aria-label="הוספה למועדפים">♡</button><button id="viewerShare" type="button" aria-label="שיתוף">↗</button><a id="viewerDownload" href="#" download aria-label="הורדה">↓</a><button id="viewerClose" type="button" aria-label="סגירה">×</button></div></header>
+    <div id="viewerStage" class="viewer-stage"><button id="viewerPrev" class="viewer-arrow prev" type="button">›</button><div id="viewerContent"></div><button id="viewerNext" class="viewer-arrow next" type="button">‹</button></div>
+    <div id="viewerCaption" class="viewer-caption"></div>
+  </div>
+  <div id="downloadProgress" class="download-progress hidden"><div class="download-card"><h2>מכין קובץ להורדה</h2><p id="downloadText">מוריד את התמונות…</p><progress id="downloadBar" max="100" value="0"></progress><button id="cancelDownload" class="btn btn-soft" type="button">ביטול</button></div></div>
+  <div id="toastRegion" class="toast-region"></div>
+  <script src="/assets/js/day.js" defer></script>
 </body>
 </html>

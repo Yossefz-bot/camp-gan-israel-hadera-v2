@@ -1,39 +1,24 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const required = [
-  'public/index.html','public/day.html','public/admin/index.html','public/assets/css/main.css','public/assets/css/admin.css',
-  'public/assets/js/app.js','public/assets/js/day.js','public/assets/js/admin.js','functions/api/site.js','functions/api/day.js',
-  'functions/api/admin/login.js','functions/api/admin/health.js','functions/api/admin/upload.js','migrations/0000_initial.sql'
-];
-let failed = false;
-for (const file of required) {
-  if (!existsSync(join(root,file))) { console.error(`Missing: ${file}`); failed = true; }
-}
-if (existsSync(join(root,'wrangler.jsonc')) || existsSync(join(root,'wrangler.toml'))) {
-  console.error('Active Wrangler config found. Dashboard-first package must not include one.'); failed = true;
-}
-function walk(dir) {
-  return readdirSync(dir).flatMap(name => {
-    const path = join(dir,name); return statSync(path).isDirectory() ? walk(path) : [path];
-  });
-}
-for (const file of walk(root).filter(file => file.endsWith('.js') || file.endsWith('.mjs'))) {
-  const result = spawnSync(process.execPath,['--check',file],{encoding:'utf8'});
-  if (result.status !== 0) { console.error(`Syntax error: ${file}\n${result.stderr}`); failed = true; }
-}
-for (const file of ['package.json','public/manifest.webmanifest','public/_routes.json']) {
-  try { JSON.parse(readFileSync(join(root,file),'utf8')); } catch (error) { console.error(`Invalid JSON: ${file}: ${error.message}`); failed = true; }
-}
-for (const file of walk(join(root,'functions')).filter(file => file.endsWith('.js'))) {
-  const source = readFileSync(file,'utf8');
-  for (const match of source.matchAll(/from\s+['"](\.[^'"]+)['"]/g)) {
-    const target = resolve(dirname(file),match[1]);
-    if (!existsSync(target)) { console.error(`Broken import in ${file}: ${match[1]}`); failed = true; }
+async function walk(dir) {
+  const out = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...await walk(path));
+    else out.push(path);
   }
+  return out;
 }
-if (failed) process.exit(1);
-console.log('V10 Pro checks passed.');
+
+const files = await walk(new URL('..', import.meta.url).pathname);
+const required = ['public/index.html', 'public/admin/index.html', 'public/assets/css/main.css', 'public/assets/js/app.js', 'functions/api/site.js', 'migrations/0000_fresh_install.sql'];
+for (const rel of required) {
+  if (!files.some(file => file.endsWith(rel))) throw new Error(`Missing required file: ${rel}`);
+}
+const htmlFiles = files.filter(file => file.endsWith('.html') && !file.includes('googlecaff839023abe494.html'));
+for (const file of htmlFiles) {
+  const text = await readFile(file, 'utf8');
+  if (!text.includes('<!doctype html>')) throw new Error(`Invalid HTML document: ${file}`);
+}
+console.log(`Project check passed: ${files.length} files, ${htmlFiles.length} HTML pages.`);

@@ -1,256 +1,69 @@
-const state = { settings: {}, days: [], songs: [], testimonials: [], currentTrack: -1, filter: 'all', query: '' };
-const $ = (selector, root = document) => root.querySelector(selector);
-const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+(() => {
+  'use strict';
+  const q=(s,r=document)=>r.querySelector(s), qa=(s,r=document)=>[...r.querySelectorAll(s)];
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const mediaUrl=key=>key?`/api/media/${encodeURI(key)}`:'';
+  const fmt=n=>new Intl.NumberFormat('he-IL').format(Number(n)||0);
+  const hebrewDate=value=>{if(!value)return'';try{return new Intl.DateTimeFormat('he-IL-u-ca-hebrew',{day:'numeric',month:'long',year:'numeric'}).format(new Date(`${value}T12:00:00`))}catch{return value}};
+  const state={data:null,days:[],songs:[],current:-1,shuffle:false,loopMode:0,observer:null};
 
-const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' })[char]);
-const mediaUrl = key => key ? `/api/media/${String(key).split('/').map(encodeURIComponent).join('/')}` : '';
-const truthy = value => value === '1' || value === 1 || value === true || value === 'true';
-const formatNumber = value => new Intl.NumberFormat('he-IL').format(Number(value || 0));
-const formatDate = value => {
-  if (!value) return '';
-  const date = new Date(`${value}T12:00:00`);
-  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('he-IL', { day:'numeric', month:'long', year:'numeric' }).format(date);
-};
-
-async function fetchJson(url, options = {}) {
-  const response = await fetch(url, { headers: { 'content-type':'application/json', ...(options.headers || {}) }, ...options });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || data.error || 'אירעה תקלה זמנית');
-  return data;
-}
-
-function toast(message, type = 'success') {
-  const region = $('#toast-region');
-  const node = document.createElement('div');
-  node.className = `toast ${type}`;
-  node.textContent = message;
-  region.append(node);
-  setTimeout(() => node.remove(), 4200);
-}
-
-function setText(selector, value) {
-  const node = $(selector);
-  if (node && value !== undefined && value !== null) node.textContent = value;
-}
-
-function setLink(node, url, text) {
-  if (!node) return;
-  if (url) {
-    node.href = url;
-    node.classList.remove('is-hidden');
-    if (text) node.textContent = text;
-    if (/^https?:/.test(url)) { node.target = '_blank'; node.rel = 'noopener'; }
-  } else node.classList.add('is-hidden');
-}
-
-function applySettings(settings) {
-  state.settings = settings;
-  const root = document.documentElement;
-  const colorMap = { theme_primary:'--primary', theme_secondary:'--secondary', theme_accent:'--accent', theme_green:'--green', theme_purple:'--purple', theme_bg:'--bg', theme_surface:'--surface' };
-  Object.entries(colorMap).forEach(([key, variable]) => { if (/^#[0-9a-f]{6}$/i.test(settings[key] || '')) root.style.setProperty(variable, settings[key]); });
-  setText('#brand-name', settings.camp_name); setText('#brand-season', settings.season_label); setText('#footer-name', settings.camp_name); setText('#footer-text', settings.footer_text);
-  setText('#hero-kicker', settings.hero_kicker); setText('#hero-text', settings.hero_text); setText('#story-kicker', settings.story_kicker); setText('#story-text', settings.story_text);
-  setText('#gallery-title', settings.gallery_title); setText('#gallery-text', settings.gallery_text); setText('#songs-title', settings.songs_title); setText('#songs-text', settings.songs_text);
-  setText('#testimonials-title', settings.testimonials_title); setText('#testimonials-text', settings.testimonials_text); setText('#updates-title', settings.updates_title); setText('#updates-text', settings.updates_text);
-  setText('#contact-title', settings.contact_title); setText('#contact-text', settings.contact_text);
-  $('#hero-title').innerHTML = highlightLast(settings.hero_title || 'הקיץ מתחיל כאן');
-  $('#story-title').innerHTML = highlightLast(settings.story_title || 'קיץ של רגעים שלא שוכחים');
-  document.title = settings.seo_title || settings.site_title || settings.camp_name;
-  $('meta[name="description"]')?.setAttribute('content', settings.seo_description || '');
-  $('meta[name="keywords"]')?.setAttribute('content', settings.seo_keywords || '');
-  $('meta[property="og:title"]')?.setAttribute('content', settings.seo_title || settings.camp_name || '');
-  $('meta[property="og:description"]')?.setAttribute('content', settings.seo_description || '');
-
-  const heroMedia = $('#hero-media');
-  if (settings.hero_image_key) heroMedia.innerHTML = `<img src="${mediaUrl(settings.hero_image_key)}" alt="${escapeHtml(settings.hero_title || settings.camp_name)}" fetchpriority="high">`;
-  if (settings.story_image_key) $('#story-photo').innerHTML = `<img src="${mediaUrl(settings.story_image_key)}" alt="${escapeHtml(settings.story_title)}" loading="lazy">`;
-  if (settings.logo_key) {
-    $$('.brand-mark').forEach(mark => { mark.innerHTML = `<img src="${mediaUrl(settings.logo_key)}" alt="" style="width:100%;height:100%;object-fit:contain;padding:5px">`; });
+  function toast(message,type='success'){const n=document.createElement('div');n.className=`toast ${type==='error'?'error':''}`;n.textContent=message;q('#toastRegion').append(n);setTimeout(()=>n.remove(),3400)}
+  function formatTime(sec){if(!Number.isFinite(sec))return'0:00';const m=Math.floor(sec/60),s=Math.floor(sec%60);return`${m}:${String(s).padStart(2,'0')}`}
+  function setTheme(settings){
+    const vars={theme_primary:'--primary',theme_secondary:'--secondary',theme_accent:'--accent',theme_bg:'--bg',theme_surface:'--surface'};
+    Object.entries(vars).forEach(([key,css])=>{if(settings[key])document.documentElement.style.setProperty(css,settings[key])});
   }
-  setLink($('#hero-primary'), settings.hero_primary_button_url || '#galleries', settings.hero_primary_button_text || 'לגלריות');
-  setLink($('#hero-secondary'), settings.hero_secondary_button_url || '#latest', settings.hero_secondary_button_text || 'צפו בסרטון');
-  $$('.registration-link').forEach(link => setLink(link, settings.registration_button_url, settings.registration_button_text));
-  configureContact(settings);
-  configureFooter(settings);
-  $('#songs')?.classList.toggle('is-hidden', !truthy(settings.show_songs));
-  $('#testimonials')?.classList.toggle('is-hidden', !truthy(settings.show_testimonials));
-  $('#updates')?.classList.toggle('is-hidden', !truthy(settings.allow_newsletter_signup));
-  $('#contact-form')?.classList.toggle('is-hidden', !truthy(settings.allow_contact_form));
-  $('#testimonial-open')?.classList.toggle('is-hidden', !truthy(settings.allow_testimonial_submission));
-  if (truthy(settings.show_countdown) && settings.countdown_target) startCountdown(settings.countdown_target); else $('#countdown')?.classList.add('is-hidden');
-}
-
-function highlightLast(text) {
-  const words = String(text).trim().split(/\s+/);
-  if (words.length < 2) return escapeHtml(text);
-  const last = words.pop();
-  return `${escapeHtml(words.join(' '))} <em>${escapeHtml(last)}</em>`;
-}
-
-function configureContact(settings) {
-  const phone = $('#contact-phone');
-  if (settings.phone) { phone.href = `tel:${settings.phone.replace(/[^+\d]/g,'')}`; $('strong', phone).textContent = settings.phone; phone.classList.remove('is-hidden'); }
-  const whatsapp = $('#contact-whatsapp');
-  if (settings.whatsapp) { const digits = settings.whatsapp.replace(/\D/g,'').replace(/^0/,'972'); whatsapp.href = `https://wa.me/${digits}`; whatsapp.target='_blank'; whatsapp.rel='noopener'; whatsapp.classList.remove('is-hidden'); }
-  const email = $('#contact-email');
-  if (settings.email) { email.href = `mailto:${settings.email}`; $('strong', email).textContent = settings.email; email.classList.remove('is-hidden'); }
-  const address = $('#contact-address');
-  if (settings.address) { $('strong', address).textContent = settings.address; address.classList.remove('is-hidden'); if (settings.map_url) { address.style.cursor='pointer'; address.addEventListener('click',()=>window.open(settings.map_url,'_blank','noopener')); } }
-}
-
-function configureFooter(settings) {
-  const social = $('#social-links');
-  const items = [ ['instagram_url','IG'], ['youtube_url','▶'], ['facebook_url','f'] ].filter(([key]) => settings[key]);
-  social.innerHTML = items.map(([key,label]) => `<a href="${escapeHtml(settings[key])}" target="_blank" rel="noopener" aria-label="${label}">${label}</a>`).join('');
-  const logoKeys = ['footer_logo_1_key','footer_logo_2_key','footer_logo_3_key'].filter(key => settings[key]);
-  $('#footer-logos').innerHTML = logoKeys.map(key => `<img src="${mediaUrl(settings[key])}" alt="לוגו שותף" loading="lazy">`).join('');
-}
-
-function renderAnnouncement(announcement) {
-  if (!announcement || sessionStorage.getItem(`announcement-${announcement.id}`) === 'closed') return;
-  const box = $('#announcement');
-  box.dataset.tone = announcement.tone;
-  setText('#announcement-title', announcement.title); setText('#announcement-body', announcement.body);
-  setLink($('#announcement-link'), announcement.button_url, announcement.button_text);
-  box.classList.remove('is-hidden');
-  $('#announcement-close').onclick = () => { box.classList.add('is-hidden'); sessionStorage.setItem(`announcement-${announcement.id}`, 'closed'); };
-}
-
-function renderStats(totals) {
-  setText('#stat-days', formatNumber(totals.days)); setText('#stat-photos', formatNumber(totals.photos)); setText('#stat-videos', formatNumber(totals.videos)); setText('#stat-songs', formatNumber(totals.songs));
-}
-
-function renderLatest(day) {
-  const card = $('#latest-card');
-  if (!day) return;
-  const src = day.cover_url || '';
-  card.innerHTML = `<div class="latest-media">${src ? `<img src="${src}" alt="${escapeHtml(day.title)}" loading="lazy">` : `<div class="hero-placeholder"><span>📸</span><strong>${escapeHtml(day.title)}</strong></div>`}${day.video_src ? '<span class="day-card-play">▶</span>' : ''}</div><div class="latest-content"><span class="pill">${escapeHtml(day.label || 'היום האחרון')}</span><h3>${escapeHtml(day.title)}</h3><p>${escapeHtml(day.description || 'כל הרגעים, החיוכים והחוויות של היום מחכים לכם בגלריה.')}</p><div class="latest-meta"><span>📅 ${escapeHtml(day.hebrew_date || formatDate(day.date) || '')}</span><span>📸 ${formatNumber(day.photo_count)} תמונות</span></div><a class="button button-primary" href="/day.html?slug=${encodeURIComponent(day.slug)}">פתיחת הגלריה</a></div>`;
-}
-
-function dayCard(day) {
-  const image = day.cover_url ? `<img src="${day.cover_url}" alt="${escapeHtml(day.title)}" loading="lazy">` : `<div class="hero-placeholder"><span>🏕️</span><strong>${escapeHtml(day.title)}</strong></div>`;
-  return `<a class="day-card" href="/day.html?slug=${encodeURIComponent(day.slug)}" data-title="${escapeHtml(`${day.title} ${day.label} ${day.date} ${day.hebrew_date}`.toLowerCase())}" data-photos="${Number(day.photo_count)>0}" data-video="${Boolean(day.video_src || Number(day.video_count)>0)}"><div class="day-card-image">${image}<span class="day-card-badge">${escapeHtml(day.label || day.hebrew_date || formatDate(day.date) || 'יום בקעמפ')}</span>${day.video_src ? '<span class="day-card-play">▶</span>' : ''}</div><div class="day-card-body"><h3>${escapeHtml(day.title)}</h3><p>${escapeHtml(day.description || 'גלריית התמונות והסרטונים של היום')}</p><div class="day-card-footer"><span>📸 ${formatNumber(day.photo_count)} תמונות</span><span>לגלריה ←</span></div></div></a>`;
-}
-
-function renderDays(days) {
-  state.days = days;
-  const grid = $('#days-grid');
-  grid.innerHTML = days.map(dayCard).join('');
-  filterDays();
-}
-
-function filterDays() {
-  const cards = $$('.day-card', $('#days-grid'));
-  let visible = 0;
-  cards.forEach(card => {
-    const matchSearch = !state.query || card.dataset.title.includes(state.query.toLowerCase());
-    const matchFilter = state.filter === 'all' || (state.filter === 'photos' && card.dataset.photos === 'true') || (state.filter === 'video' && card.dataset.video === 'true');
-    card.classList.toggle('is-hidden', !(matchSearch && matchFilter));
-    if (matchSearch && matchFilter) visible += 1;
-  });
-  $('#days-empty').classList.toggle('is-hidden', visible > 0);
-}
-
-function renderTestimonials(items) {
-  state.testimonials = items;
-  if (!items.length) return;
-  $('#testimonials-track').innerHTML = items.map(item => `<article class="testimonial-card"><div class="stars">${'★'.repeat(Number(item.rating)||5)}${'☆'.repeat(5-(Number(item.rating)||5))}</div><p>“${escapeHtml(item.message)}”</p><footer><span class="testimonial-avatar">${escapeHtml((item.name||'ה').slice(0,1))}</span><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.relation || 'משפחת הקעמפ')}</small></div></footer></article>`).join('');
-}
-
-function renderSongs(songs) {
-  state.songs = songs;
-  const list = $('#playlist');
-  if (!songs.length) return;
-  list.innerHTML = songs.map((song,index) => `<button class="playlist-item" data-track="${index}"><span class="playlist-number">${index+1}</span><span class="playlist-copy"><strong>${escapeHtml(song.title || song.original_name || `המנון ${index+1}`)}</strong><small>${escapeHtml(song.caption || 'קעמפ גן ישראל חדרה')}</small></span><span>▶</span></button>`).join('');
-  $$('.playlist-item', list).forEach(button => button.addEventListener('click', () => loadTrack(Number(button.dataset.track), true)));
-  loadTrack(0, false);
-}
-
-function loadTrack(index, autoplay) {
-  if (!state.songs.length) return;
-  state.currentTrack = (index + state.songs.length) % state.songs.length;
-  const song = state.songs[state.currentTrack], audio = $('#audio-player');
-  audio.src = song.url || mediaUrl(song.object_key); setText('#track-title', song.title || song.original_name || `המנון ${state.currentTrack+1}`); setText('#track-subtitle', song.caption || state.settings.camp_name);
-  $$('.playlist-item').forEach((item,i)=>item.classList.toggle('active',i===state.currentTrack));
-  if (autoplay) audio.play().catch(()=>{});
-}
-
-function initPlayer() {
-  const audio = $('#audio-player'), player = $('#music-player'), play = $('#play-track'), progress = $('#audio-progress');
-  play.addEventListener('click',()=>{ if(!audio.src)return; audio.paused?audio.play():audio.pause(); });
-  audio.addEventListener('play',()=>{player.classList.add('playing');play.textContent='❚❚';});
-  audio.addEventListener('pause',()=>{player.classList.remove('playing');play.textContent='▶';});
-  audio.addEventListener('timeupdate',()=>{ const percent=audio.duration?audio.currentTime/audio.duration*100:0;progress.value=percent;setText('#current-time',formatTime(audio.currentTime));setText('#duration-time',formatTime(audio.duration)); });
-  audio.addEventListener('ended',()=>{ if(audio.loop)audio.play();else loadTrack(state.currentTrack+1,true); });
-  progress.addEventListener('input',()=>{if(audio.duration)audio.currentTime=Number(progress.value)/100*audio.duration;});
-  $('#prev-track').addEventListener('click',()=>loadTrack(state.currentTrack-1,true)); $('#next-track').addEventListener('click',()=>loadTrack(state.currentTrack+1,true));
-  $('#loop-track').addEventListener('click',event=>{audio.loop=!audio.loop;event.currentTarget.classList.toggle('active',audio.loop);});
-  $('#audio-volume').addEventListener('input',event=>{audio.volume=Number(event.target.value);}); audio.volume=.8;
-}
-
-function formatTime(seconds) { if(!Number.isFinite(seconds))return '0:00'; return `${Math.floor(seconds/60)}:${String(Math.floor(seconds%60)).padStart(2,'0')}`; }
-
-function initForms() {
-  const bind = (formSelector, endpoint, transform, successAction) => {
-    const form = $(formSelector); if(!form)return;
-    form.addEventListener('submit',async event=>{
-      event.preventDefault(); const button=$('button[type="submit"]',form),status=$('.form-status',form); button.disabled=true; status.textContent='שולח...'; status.className='form-status';
-      try{ const values=Object.fromEntries(new FormData(form)); const payload=transform(values,form); const data=await fetchJson(endpoint,{method:'POST',body:JSON.stringify(payload)}); status.textContent=data.message||'נשלח בהצלחה';status.classList.add('success');form.reset();successAction?.();toast(data.message||'נשלח בהצלחה'); }
-      catch(error){status.textContent=error.message;status.classList.add('error');toast(error.message,'error');}
-      finally{button.disabled=false;}
-    });
-  };
-  bind('#subscribe-form','/api/subscribe',(v,f)=>({...v,consent:$('[name="consent"]',f).checked}));
-  bind('#contact-form','/api/contact',v=>v);
-  bind('#testimonial-form','/api/testimonials',(v)=>({...v,rating:Number(v.rating)||5}),()=>setTimeout(()=>$('#testimonial-modal').close(),900));
-}
-
-function initInteractions() {
-  const header=$('#site-header'); window.addEventListener('scroll',()=>{header.classList.toggle('scrolled',scrollY>10);$('#back-to-top').classList.toggle('visible',scrollY>650);},{passive:true});
-  $('#back-to-top').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
-  const menu=$('#menu-button'),nav=$('#mobile-nav'); menu.addEventListener('click',()=>{const open=menu.classList.toggle('active');nav.classList.toggle('open',open);menu.setAttribute('aria-expanded',String(open));}); $$('#mobile-nav a').forEach(a=>a.addEventListener('click',()=>{menu.classList.remove('active');nav.classList.remove('open');menu.setAttribute('aria-expanded','false');}));
-  $('#gallery-search').addEventListener('input',event=>{state.query=event.target.value.trim();filterDays();});
-  $$('.filter-chips .chip').forEach(button=>button.addEventListener('click',()=>{$$('.filter-chips .chip').forEach(x=>x.classList.remove('active'));button.classList.add('active');state.filter=button.dataset.filter;filterDays();}));
-  $('#testimonial-open').addEventListener('click',()=>$('#testimonial-modal').showModal());
-  $$('[data-close-dialog]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog')?.close()));
-  $('#search-open').addEventListener('click',()=>{renderSearch('');$('#search-modal').showModal();setTimeout(()=>$('#global-search-input').focus(),50);});
-  $('#search-close').addEventListener('click',()=>$('#search-modal').close());
-  $('#global-search-input').addEventListener('input',event=>renderSearch(event.target.value));
-  $('#search-modal').addEventListener('click',event=>{if(event.target===$('#search-modal'))$('#search-modal').close();});
-  initTheme(); initReveals();
-}
-
-function renderSearch(query) {
-  const q=query.trim().toLowerCase(); const results=q?state.days.filter(day=>`${day.title} ${day.label} ${day.date} ${day.hebrew_date} ${day.description}`.toLowerCase().includes(q)):state.days.slice(0,6);
-  $('#global-search-results').innerHTML=results.length?results.map(day=>`<a class="search-result" href="/day.html?slug=${encodeURIComponent(day.slug)}">${day.cover_url?`<img src="${day.cover_url}" alt="">`:'<span class="stat-icon">📷</span>'}<div><strong>${escapeHtml(day.title)}</strong><small>${escapeHtml(day.hebrew_date||formatDate(day.date)||`${day.photo_count||0} תמונות`)}</small></div></a>`).join(''):'<div class="empty-state"><span>🔎</span><h3>לא נמצאו תוצאות</h3></div>';
-}
-
-function initTheme() {
-  const stored=localStorage.getItem('camp-theme'); if(stored==='dark'||(!stored&&matchMedia('(prefers-color-scheme:dark)').matches))document.body.classList.add('dark');
-  $('#theme-toggle').addEventListener('click',()=>{document.body.classList.toggle('dark');localStorage.setItem('camp-theme',document.body.classList.contains('dark')?'dark':'light');});
-}
-
-function initReveals() {
-  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.style.transitionDelay=`${entry.target.dataset.delay||0}ms`;entry.target.classList.add('visible');observer.unobserve(entry.target);}}),{threshold:.12});
-  $$('.reveal').forEach(node=>observer.observe(node));
-}
-
-function startCountdown(target) {
-  const date=new Date(target);if(Number.isNaN(date.getTime()))return;const box=$('#countdown');box.classList.remove('is-hidden');
-  const update=()=>{const diff=Math.max(0,date-Date.now());const days=Math.floor(diff/86400000),hours=Math.floor(diff/3600000)%24,minutes=Math.floor(diff/60000)%60,seconds=Math.floor(diff/1000)%60;setText('#count-days',String(days).padStart(2,'0'));setText('#count-hours',String(hours).padStart(2,'0'));setText('#count-minutes',String(minutes).padStart(2,'0'));setText('#count-seconds',String(seconds).padStart(2,'0'));if(diff<=0)clearInterval(timer);};update();const timer=setInterval(update,1000);
-}
-
-async function track(page='/',event='view') { try{await fetch('/api/track',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({page,event}),keepalive:true});}catch{} }
-
-async function boot() {
-  setText('#current-year',new Date().getFullYear()); initPlayer(); initForms(); initInteractions();
-  try {
-    const data=await fetchJson('/api/site');
-    applySettings(data.settings||{});renderAnnouncement(data.announcement);renderStats(data.totals||{});renderLatest(data.latest_day);renderDays(data.days||[]);renderSongs(data.songs||[]);renderTestimonials(data.testimonials||[]);
-    if(data.setup?.required) console.info('Camp setup required',data.setup);
-  } catch(error) { toast('האתר נטען במצב בסיסי. נסו לרענן בעוד רגע.','error'); renderDays([]); }
-  finally { $('#site-loader').classList.add('loaded'); track(location.pathname); }
-  if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
-}
-
-document.addEventListener('DOMContentLoaded',boot);
+  function videoEmbed(url,title='סרטון'){
+    if(!url)return'';
+    const yt=url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+    if(yt)return`<iframe src="https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0" title="${esc(title)}" loading="lazy" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    const vm=url.match(/vimeo\.com\/(\d+)/);if(vm)return`<iframe src="https://player.vimeo.com/video/${vm[1]}" title="${esc(title)}" loading="lazy" allowfullscreen></iframe>`;
+    return`<video controls playsinline preload="metadata" src="${esc(url)}"></video>`;
+  }
+  function applySettings(s){
+    setTheme(s);
+    const title=s.seo_title||s.site_title||s.camp_name||'קעמפ גן ישראל חדרה';
+    document.title=title;q('#metaDescription').content=s.seo_description||s.hero_text||'';q('#metaKeywords').content=s.seo_keywords||'';q('#ogTitle').content=title;q('#ogDescription').content=s.seo_description||s.hero_text||'';
+    q('#brandName').textContent=s.camp_name||s.site_title||'קעמפ גן ישראל חדרה';q('#brandCity').textContent=s.city||'חדרה';q('#footerCampName').textContent=s.camp_name||'קעמפ גן ישראל חדרה';
+    q('#heroKicker').textContent=s.hero_kicker||'קיץ של חוויה • שליחות • חברות';q('#heroTitle').textContent=s.hero_title||'הקיץ שלא שוכחים';q('#heroText').textContent=s.hero_text||'';
+    if(s.logo_key){q('#brandLogo').src=mediaUrl(s.logo_key);q('#brandLogo').classList.remove('hidden');q('#brandInitials').classList.add('hidden')}
+    if(s.hero_image_key){q('#heroImage').style.backgroundImage=`url("${mediaUrl(s.hero_image_key)}")`;q('#heroImage').classList.add('has-image')}
+    if(s.registration_button_url){const a=document.createElement('a');a.className='btn btn-accent';a.href=s.registration_button_url;a.target='_blank';a.rel='noopener';a.textContent=s.registration_button_text||'הרשמה לקעמפ';q('#heroButtons').append(a)}
+    if(s.registration_video_url){q('#registrationSection').classList.remove('hidden');q('#registrationVideo').className=`video-host aspect-${s.registration_video_aspect||'landscape'} reveal visible`;q('#registrationVideo').innerHTML=videoEmbed(s.registration_video_url,'סרטון הרשמה')}
+    if(s.story_title||s.story_text){q('#storySection').classList.remove('hidden');q('#storyKicker').textContent=s.story_kicker||'';q('#storyTitle').textContent=s.story_title||'';q('#storyText').textContent=s.story_text||'';if(s.story_image_key)q('#storyImage').style.backgroundImage=`url("${mediaUrl(s.story_image_key)}")`}
+    q('#galleryTitle').textContent=s.gallery_title||'הגלריות של הקעמפ';q('#galleryText').textContent=s.gallery_text||'כל יום מקבל מקום משלו — סרטון סיכום, תמונות ורגעים ששווה לחזור אליהם.';
+    q('#songsTitle').textContent=s.songs_title||'המנוני הקעמפ';q('#songsText').textContent=s.songs_text||'בחרו שיר, הפעילו מעבר אוטומטי, או השאירו את ההמנון האהוב בלופ.';
+    q('#testimonialsTitle').textContent=s.testimonials_title||'מה ההורים מספרים';q('#testimonialsText').textContent=s.testimonials_text||'תגובות אמיתיות מהמשפחות שחוו את הקעמפ איתנו.';
+    q('#updatesTitle').textContent=s.updates_title||'לקבלת עדכונים מהקעמפ';q('#updatesText').textContent=s.updates_text||'גלריות חדשות, סרטונים ועדכונים חשובים ישירות אליכם.';
+    q('#contactTitle').textContent=s.contact_title||'יצירת קשר';q('#contactText').textContent=s.contact_text||'לשאלות, הרשמה ופרטים נוספים — נשמח לדבר.';
+    q('#footerText').textContent=s.footer_text||'כל החוויות. במקום אחד.';
+    const logos=[s.footer_logo_1_key,s.footer_logo_2_key,s.footer_logo_3_key].filter(Boolean);q('#footerLogos').innerHTML=logos.map(k=>`<img src="${mediaUrl(k)}" alt="לוגו שותף">`).join('');
+    renderContact(s);
+  }
+  function renderContact(s){
+    const items=[];if(s.phone)items.push({icon:'☎',title:'טלפון',value:s.phone,href:`tel:${String(s.phone).replace(/[^\d+]/g,'')}`});
+    if(s.whatsapp){const n=String(s.whatsapp).replace(/\D/g,'');items.push({icon:'◉',title:'WhatsApp',value:'שליחת הודעה',href:`https://wa.me/${n}`})}
+    if(s.email)items.push({icon:'✉',title:'אימייל',value:s.email,href:`mailto:${s.email}`});if(s.address)items.push({icon:'⌖',title:'כתובת',value:s.address,href:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}`});
+    q('#contactCards').innerHTML=items.length?items.map(x=>`<a class="contact-card reveal visible" href="${esc(x.href)}" ${x.href.startsWith('http')?'target="_blank" rel="noopener"':''}><span>${x.icon}</span><div><strong>${esc(x.title)}</strong><small>${esc(x.value)}</small></div></a>`).join(''):'<div class="empty">פרטי יצירת הקשר יעודכנו בקרוב.</div>';
+  }
+  function renderMessage(m){if(!m)return;const host=q('#updates');host.classList.remove('hidden');q('#message strong').textContent=m.title;q('#message p').textContent=m.body;const a=q('#message a');if(m.button_url){a.href=m.button_url;a.textContent=m.button_text||'לפרטים';a.classList.remove('hidden')}}
+  function dayCard(d){const cover=d.cover_key||d.fallback_cover_key;return`<a class="day-card reveal visible" href="/day.html?slug=${encodeURIComponent(d.slug)}"><div class="cover" ${cover?`style="background-image:url('${mediaUrl(cover)}')"`:''}></div><div class="overlay"></div><div class="day-card-content"><span>${esc(d.label||hebrewDate(d.date)||'יום בקעמפ')}</span><h3>${esc(d.title)}</h3><p>${esc(d.description||'')}</p><b>${fmt(d.media_count)} פריטים ←</b></div></a>`}
+  function renderDays(days){state.days=days;filterDays('')}
+  function filterDays(term){const t=term.trim().toLowerCase();const list=state.days.filter(d=>!t||`${d.title} ${d.label||''} ${d.description||''} ${hebrewDate(d.date)}`.toLowerCase().includes(t));q('#dayCount').textContent=`${fmt(list.length)} גלריות`;q('#days').innerHTML=list.length?list.map(dayCard).join(''):'<div class="empty">לא נמצאו גלריות שמתאימות לחיפוש.</div>'}
+  function renderVideos(days){const items=days.filter(d=>d.video_url);if(!items.length)return;q('#videos').classList.remove('hidden');q('#summaryVideos').innerHTML=items.map(d=>`<article class="video-card reveal visible"><div class="video-host aspect-${esc(d.video_aspect||'landscape')}">${videoEmbed(d.video_url,d.title)}</div><div class="video-card-copy"><h3>${esc(d.title)}</h3><span>${esc(d.label||hebrewDate(d.date))}</span></div></article>`).join('')}
+  function renderTestimonials(items){if(!items.length){q('#testimonialGrid').innerHTML='<div class="empty">כאן יופיעו תגובות ההורים לאחר אישור.</div>';return}q('#testimonialGrid').innerHTML=items.map(t=>`<article class="testimonial-card reveal visible"><div class="stars">${'★'.repeat(Number(t.rating)||5)}</div><blockquote>${esc(t.message)}</blockquote><strong>${esc(t.name)}</strong><small>${esc(t.relation||'')}</small></article>`).join('')}
+  function renderSongs(items){state.songs=items;if(!items.length)return;q('#songs').classList.remove('hidden');q('#songsList').innerHTML=items.map((s,i)=>`<article class="song-row" data-index="${i}"><button type="button" aria-label="נגן">▶</button><div><strong>${esc(s.title||s.original_name||'המנון')}</strong><small>המנון הקעמפ</small></div><span>${i+1}</span></article>`).join('');qa('.song-row',q('#songsList')).forEach(r=>r.querySelector('button').onclick=()=>selectSong(Number(r.dataset.index),true))}
+  function selectSong(index,autoplay){if(!state.songs.length)return;state.current=(index+state.songs.length)%state.songs.length;const song=state.songs[state.current],audio=q('#mainAudio');audio.src=mediaUrl(song.object_key);q('#nowPlaying').textContent=song.title||song.original_name||'המנון';qa('.song-row').forEach((r,i)=>{r.classList.toggle('active',i===state.current);r.querySelector('button').textContent=i===state.current&&!audio.paused?'❚❚':'▶'});if('mediaSession'in navigator){navigator.mediaSession.metadata=new MediaMetadata({title:q('#nowPlaying').textContent,artist:'קעמפ גן ישראל חדרה'})}if(autoplay)audio.play().catch(()=>{})}
+  function updateAudio(){const a=q('#mainAudio');q('#playSong').textContent=a.paused?'▶':'❚❚';q('#audioCurrent').textContent=formatTime(a.currentTime);q('#audioDuration').textContent=formatTime(a.duration);q('#audioProgress').value=a.duration?Math.round(a.currentTime/a.duration*1000):0;qa('.song-row').forEach((r,i)=>r.querySelector('button').textContent=i===state.current&&!a.paused?'❚❚':'▶')}
+  function nextSong(step=1){if(!state.songs.length)return;if(state.loopMode===1)return selectSong(state.current,true);if(state.shuffle)return selectSong(Math.floor(Math.random()*state.songs.length),true);selectSong(state.current+step,true)}
+  function cycleLoop(){state.loopMode=(state.loopMode+1)%3;const text=['↻ לופ כבוי','↻ חזרה על שיר','↻ חזרה על הכל'][state.loopMode];q('#loopSongs').textContent=text;q('#loopSongs').classList.toggle('active',state.loopMode>0)}
+  function bindAudio(){const a=q('#mainAudio');q('#playSong').onclick=()=>{if(state.current<0)selectSong(0,true);else a.paused?a.play().catch(()=>{}):a.pause()};q('#prevSong').onclick=()=>nextSong(-1);q('#nextSong').onclick=()=>nextSong(1);q('#shuffleSongs').onclick=()=>{state.shuffle=!state.shuffle;q('#shuffleSongs').classList.toggle('active',state.shuffle)};q('#loopSongs').onclick=cycleLoop;q('#audioVolume').oninput=e=>a.volume=Number(e.target.value);q('#audioProgress').oninput=e=>{if(a.duration)a.currentTime=Number(e.target.value)/1000*a.duration};['play','pause','timeupdate','loadedmetadata'].forEach(ev=>a.addEventListener(ev,updateAudio));a.addEventListener('ended',()=>{if(state.loopMode===0&&state.current===state.songs.length-1)return;nextSong(1)});if('mediaSession'in navigator){navigator.mediaSession.setActionHandler('play',()=>a.play());navigator.mediaSession.setActionHandler('pause',()=>a.pause());navigator.mediaSession.setActionHandler('previoustrack',()=>nextSong(-1));navigator.mediaSession.setActionHandler('nexttrack',()=>nextSong(1))}}
+  function bindForms(){
+    q('#subscribe').addEventListener('submit',async e=>{e.preventDefault();const status=q('#subStatus');status.textContent='שולח…';const f=new FormData(e.currentTarget),body=Object.fromEntries(f);body.consent=f.get('consent')==='on';try{const r=await fetch('/api/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'ההרשמה נכשלה');status.textContent='נרשמת בהצלחה! 🎉';e.currentTarget.reset()}catch(err){status.textContent=err.message}});
+    q('#testimonialForm').addEventListener('submit',async e=>{e.preventDefault();const status=q('#testimonialStatus');status.textContent='שולח…';try{const r=await fetch('/api/testimonials',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'השליחה נכשלה');status.textContent='תודה! התגובה נשלחה לאישור.';e.currentTarget.reset()}catch(err){status.textContent=err.message}})
+  }
+  function bindNavigation(){const menu=q('#menuButton'),nav=q('#mainNav');menu.onclick=()=>{const open=nav.classList.toggle('open');menu.classList.toggle('open',open);menu.setAttribute('aria-expanded',String(open))};qa('#mainNav a').forEach(a=>a.onclick=()=>{nav.classList.remove('open');menu.classList.remove('open')});q('#themeToggle').onclick=()=>{document.body.classList.toggle('dark');const dark=document.body.classList.contains('dark');localStorage.setItem('campTheme',dark?'dark':'light');q('#themeToggle').textContent=dark?'☀':'☾'};if(localStorage.getItem('campTheme')==='dark'){document.body.classList.add('dark');q('#themeToggle').textContent='☀'};window.addEventListener('scroll',()=>{const max=document.documentElement.scrollHeight-innerHeight;q('#pageProgress span').style.width=`${max?scrollY/max*100:0}%`})}
+  function setupReveal(){if(!('IntersectionObserver'in window)){qa('.reveal').forEach(x=>x.classList.add('visible'));return}state.observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');state.observer.unobserve(e.target)}}),{threshold:.12});qa('.reveal').forEach(x=>state.observer.observe(x))}
+  async function init(){q('#year').textContent=new Date().getFullYear();bindNavigation();bindAudio();bindForms();q('#daySearch').addEventListener('input',e=>filterDays(e.target.value));try{const r=await fetch('/api/site');if(!r.ok)throw new Error('לא הצלחנו לטעון את האתר');const d=await r.json();state.data=d;applySettings(d.settings||{});renderMessage(d.message);renderDays(d.days||[]);renderVideos(d.days||[]);renderSongs(d.songs||[]);renderTestimonials(d.testimonials||[]);q('#statPhotos').textContent=fmt(d.totals?.photos);q('#statDays').textContent=fmt(d.totals?.days??d.days?.length);q('#statSongs').textContent=fmt(d.totals?.songs??d.songs?.length);setupReveal()}catch(err){q('#days').innerHTML='<div class="empty">לא הצלחנו לטעון כרגע. נסו לרענן את הדף.</div>';toast(err.message,'error')}}
+  init();
+})();
