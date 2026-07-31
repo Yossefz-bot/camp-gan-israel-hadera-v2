@@ -1,11 +1,32 @@
+import { clean } from '../_shared.js';
+
 export async function onRequestGet({ params, env, request }) {
-  const key = Array.isArray(params.path) ? params.path.join('/') : params.path;
-  if (!key) return new Response('Not found', { status:404 });
-  const object = await env.MEDIA.get(key, { range:request.headers });
-  if (!object) return new Response('Not found', { status:404 });
-  const headers = new Headers(); object.writeHttpMetadata(headers); headers.set('etag',object.httpEtag); headers.set('Accept-Ranges','bytes'); headers.set('Cache-Control','public,max-age=31536000,immutable');
+  if (!env.MEDIA) return new Response('Media binding is not configured', { status: 503 });
+  const raw = Array.isArray(params.path) ? params.path.join('/') : params.path;
+  const key = clean(raw, 1000);
+  if (!key || key.includes('..')) return new Response('Not found', { status: 404 });
+
+  const object = await env.MEDIA.get(key, { onlyIf: request.headers, range: request.headers });
+  if (!object) return new Response('Not found', { status: 404 });
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set('etag', object.httpEtag);
+  headers.set('accept-ranges', 'bytes');
+  headers.set('cache-control', 'public,max-age=31536000,immutable');
+  headers.set('x-content-type-options', 'nosniff');
+  const url = new URL(request.url);
+  if (url.searchParams.get('download') === '1') {
+    const original = object.customMetadata?.originalName || key.split('/').pop() || 'download';
+    headers.set('content-disposition', `attachment; filename*=UTF-8''${encodeURIComponent(original)}`);
+  }
+
+  if (!('body' in object)) return new Response(null, { status: 412, headers });
   if (object.range) {
-    const range = object.range; headers.set('Content-Range',`bytes ${range.offset}-${range.offset+range.length-1}/${object.size}`); headers.set('Content-Length',String(range.length));
-  } else headers.set('Content-Length',String(object.size));
-  return new Response(object.body,{headers,status:object.range?206:200});
+    headers.set('content-range', `bytes ${object.range.offset}-${object.range.offset + object.range.length - 1}/${object.size}`);
+    headers.set('content-length', String(object.range.length));
+    return new Response(object.body, { status: 206, headers });
+  }
+  headers.set('content-length', String(object.size));
+  return new Response(object.body, { status: 200, headers });
 }

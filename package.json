@@ -1,8 +1,14 @@
 {
-  "name": "camp-gan-israel-hadera-v9",
+  "name": "camp-gan-israel-hadera-v10-pro",
+  "version": "10.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "dev": "npx wrangler pages dev public",
+    "deploy": "npx wrangler pages deploy public"
+  },
+  "devDependencies": {
+    "wrangler": "^4.116.0"
   }
 }
