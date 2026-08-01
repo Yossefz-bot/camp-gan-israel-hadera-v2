@@ -1,4 +1,4 @@
-import { audit, clean, integer, json, parseJson, statusValue } from '../_shared.js';
+import { audit, clean, integer, isEmail, json, parseJson, statusValue } from '../_shared.js';
 import { requireAdmin } from './_auth.js';
 
 export async function onRequest({request,env}){
@@ -18,6 +18,38 @@ export async function onRequest({request,env}){
       return json({subscribers:rows.results||[],total:Number(count?.n||0),offset,limit});
     }
     const body=await parseJson(request);
+    if(request.method==='POST'&&body.action==='import'){
+      const incoming=Array.isArray(body.rows)?body.rows:[];
+      if(!incoming.length)return json({error:'no_rows',message:'לא נמצאו שורות תקינות לייבוא.'},400);
+      if(incoming.length>500)return json({error:'too_many_rows',message:'אפשר לייבא עד 500 כתובות בכל פעולה.'},400);
+      const source=clean(body.source||'ייבוא אקסל',120)||'ייבוא אקסל';
+      const reactivate=body.reactivate!==false;
+      const unique=new Map();let invalid=0,duplicates=0;
+      for(const row of incoming){
+        const email=clean(row?.email,200).toLowerCase();
+        if(!isEmail(email)){invalid++;continue}
+        if(unique.has(email)){duplicates++;continue}
+        unique.set(email,{email,name:clean(row?.name,120),phone:clean(row?.phone,40)});
+      }
+      const rows=[...unique.values()];
+      if(!rows.length)return json({error:'no_valid_emails',message:'לא נמצאו כתובות אימייל תקינות בקובץ.'},400);
+      const existing=new Set();
+      for(let i=0;i<rows.length;i+=80){
+        const chunk=rows.slice(i,i+80),placeholders=chunk.map(()=>'?').join(',');
+        const found=await env.DB.prepare(`SELECT LOWER(email) AS email FROM subscribers WHERE LOWER(email) IN (${placeholders})`).bind(...chunk.map(row=>row.email)).all();
+        for(const item of found.results||[])existing.add(String(item.email).toLowerCase());
+      }
+      const sql=reactivate
+        ?`INSERT INTO subscribers(name,phone,email,status,source,consent,created_at,updated_at) VALUES(?,?,?,'active',?,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(email) DO UPDATE SET name=CASE WHEN excluded.name<>'' THEN excluded.name ELSE subscribers.name END,phone=CASE WHEN excluded.phone<>'' THEN excluded.phone ELSE subscribers.phone END,status='active',consent=1,updated_at=CURRENT_TIMESTAMP`
+        :`INSERT INTO subscribers(name,phone,email,status,source,consent,created_at,updated_at) VALUES(?,?,?,'active',?,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(email) DO UPDATE SET name=CASE WHEN excluded.name<>'' THEN excluded.name ELSE subscribers.name END,phone=CASE WHEN excluded.phone<>'' THEN excluded.phone ELSE subscribers.phone END,updated_at=CURRENT_TIMESTAMP`;
+      for(let i=0;i<rows.length;i+=100){
+        const statements=rows.slice(i,i+100).map(row=>env.DB.prepare(sql).bind(row.name,row.phone,row.email,source));
+        await env.DB.batch(statements);
+      }
+      const inserted=rows.filter(row=>!existing.has(row.email)).length,updated=rows.length-inserted;
+      await audit(env,'import_subscribers','subscriber','batch',`${rows.length} rows from ${source}`);
+      return json({ok:true,inserted,updated,invalid,duplicates,total:rows.length});
+    }
     if(request.method==='PATCH'){
       const id=integer(body.id),current=await env.DB.prepare('SELECT * FROM subscribers WHERE id=?').bind(id).first();if(!current)return json({error:'not_found'},404);
       await env.DB.prepare('UPDATE subscribers SET name=?,phone=?,email=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
