@@ -19,3 +19,20 @@
 .hero-media.has-video video,.story-photo.has-video video{width:100%;height:100%;object-fit:cover;display:block;background:#07172b}
 .hero-media.has-video iframe,.story-photo.has-video iframe{background:#07172b}
 .hero-media video[controls],.story-photo video[controls]{object-fit:contain}
+
+/* V12 — מצגת דף הבית ותמונה במרכז התקליט */
+.hero-media.has-slideshow{position:relative;overflow:hidden;background:#07172b}
+.hero-slides{position:absolute;inset:0}
+.hero-slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .65s ease,visibility .65s ease;display:grid;place-items:center;background:#07172b}
+.hero-slide.active{opacity:1;visibility:visible;z-index:2}
+.hero-slide img,.hero-slide video{width:100%;height:100%;object-fit:cover;display:block}
+.hero-slide video[controls]{object-fit:contain}
+.hero-slide-nav{position:absolute;z-index:7;top:50%;transform:translateY(-50%);width:42px;height:54px;border:1px solid rgba(255,255,255,.35);border-radius:15px;background:rgba(7,23,43,.48);color:#fff;font-size:34px;display:grid;place-items:center;backdrop-filter:blur(8px);opacity:0;transition:.2s}
+.hero-media:hover .hero-slide-nav,.hero-slide-nav:focus-visible{opacity:1}
+.hero-slide-prev{right:12px}.hero-slide-next{left:12px}
+.hero-slide-dots{position:absolute;z-index:7;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:7px;padding:7px 9px;border-radius:999px;background:rgba(7,23,43,.42);backdrop-filter:blur(7px)}
+.hero-slide-dots button{width:8px;height:8px;border:0;border-radius:50%;background:rgba(255,255,255,.5);padding:0;transition:.2s}
+.hero-slide-dots button.active{width:24px;border-radius:99px;background:var(--accent)}
+.record span#record-center{width:72px;height:72px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--primary);color:#fff;box-shadow:inset 0 0 0 4px rgba(255,255,255,.22);font-size:17px}
+.record span#record-center img{width:100%;height:100%;object-fit:cover;display:block}
+@media(max-width:520px){.hero-slide-nav{opacity:1;width:36px;height:46px}.record span#record-center{width:64px;height:64px}}

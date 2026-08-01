@@ -1,0 +1,24 @@
+עדכון V12 — מיילים, ניוזלטר, מצגת וסרטון סיכום
+===================================================
+
+מה נוסף:
+1. תשובה לפניות מהניהול ושליחה למייל הפונה.
+2. שליחת ניוזלטר לרשימת התפוצה, כולל מייל בדיקה וקישור הסרה.
+3. תמונה במרכז התקליט בנגן ההמנונים.
+4. מצגת תמונות וסרטונים מתחלפים בבאנר הראשי.
+5. סרטון סיכום באזור „הסיפור שלנו”.
+
+התקנת חבילת התיקון:
+1. חלץ את ZIP התיקון.
+2. העתק את כל תוכנו לתיקיית המאגר ואשר Replace.
+3. GitHub Desktop: Commit בשם Add V12 communications and media.
+4. לחץ Push origin והמתן ל־Success ב־Cloudflare.
+5. ב־D1 Console הרץ פעם אחת את migrations/0002_communications_and_slides.sql.
+6. ב־Cloudflare Variables and secrets הוסף:
+   RESEND_API_KEY — Secret
+   EMAIL_FROM — Plaintext
+   EMAIL_REPLY_TO — Plaintext, מומלץ
+   PUBLIC_SITE_URL — Plaintext, מומלץ
+7. בצע Retry deployment ורענן את הניהול עם Ctrl+F5.
+
+אין לשתף את RESEND_API_KEY ואין להכניס אותו לקבצי GitHub.

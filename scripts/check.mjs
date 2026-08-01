@@ -7,7 +7,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const required = [
   'public/index.html','public/day.html','public/admin/index.html','public/assets/css/main.css','public/assets/css/admin.css',
   'public/assets/js/app.js','public/assets/js/day.js','public/assets/js/admin.js','functions/api/site.js','functions/api/day.js',
-  'functions/api/admin/login.js','functions/api/admin/health.js','functions/api/admin/upload.js','migrations/0000_initial.sql'
+  'functions/api/admin/login.js','functions/api/admin/health.js','functions/api/admin/upload.js','functions/api/admin/contacts.js','functions/api/admin/newsletters.js','functions/api/admin/slides.js','functions/api/_email.js','functions/api/unsubscribe.js','migrations/0000_initial.sql','migrations/0002_communications_and_slides.sql'
 ];
 let failed = false;
 for (const file of required) {
@@ -36,4 +36,4 @@ for (const file of walk(join(root,'functions')).filter(file => file.endsWith('.j
   }
 }
 if (failed) process.exit(1);
-console.log('V11.1 homepage media checks passed.');
+console.log('V12 communications and homepage media checks passed.');

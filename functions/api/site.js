@@ -17,13 +17,13 @@ function decorateMedia(item) {
 export async function onRequestGet({ env }) {
   const fallback = {
     settings: { ...DEFAULT_SETTINGS }, days: [], latest_day: null, announcement: null,
-    songs: [], testimonials: [], featured_media: [], totals: { days: 0, photos: 0, videos: 0, songs: 0 },
+    songs: [], testimonials: [], hero_slides: [], totals: { days: 0, photos: 0, videos: 0, songs: 0 },
     setup: { required: true, db_binding: Boolean(env.DB), r2_binding: Boolean(env.MEDIA), database_ready: false }
   };
   if (!env.DB) return json(fallback, 200, { 'cache-control': 'public,max-age=15' });
 
   try {
-    const [settings, daysResult, announcement, songsResult, testimonialsResult, featuredResult, totals] = await Promise.all([
+    const [settings, daysResult, announcement, songsResult, testimonialsResult, slidesResult, totals] = await Promise.all([
       loadSettings(env),
       env.DB.prepare(`
         SELECT d.*,
@@ -44,15 +44,7 @@ export async function onRequestGet({ env }) {
       `).first(),
       env.DB.prepare("SELECT * FROM media WHERE kind='audio' AND status='published' ORDER BY sort_order,id").all(),
       env.DB.prepare("SELECT id,name,relation,rating,message FROM testimonials WHERE status='approved' ORDER BY sort_order,id DESC LIMIT 24").all(),
-      env.DB.prepare(`
-        SELECT m.id,m.title,m.alt_text,m.caption,m.object_key,m.created_at,
-               d.slug AS day_slug,d.title AS day_title,d.label AS day_label
-        FROM media m
-        LEFT JOIN days d ON d.id=m.day_id
-        WHERE m.kind='image' AND m.status='published' AND (m.day_id IS NULL OR d.status='published')
-        ORDER BY m.is_featured DESC,m.id DESC
-        LIMIT 12
-      `).all(),
+      env.DB.prepare("SELECT * FROM homepage_slides WHERE status='published' ORDER BY sort_order,id").all().catch(() => ({ results: [] })),
       env.DB.prepare(`SELECT
         (SELECT COUNT(*) FROM days WHERE status='published') AS days,
         (SELECT COUNT(*) FROM media WHERE kind='image' AND status='published') AS photos,
@@ -68,7 +60,7 @@ export async function onRequestGet({ env }) {
       announcement,
       songs: (songsResult.results || []).map(decorateMedia),
       testimonials: testimonialsResult.results || [],
-      featured_media: (featuredResult.results || []).map(decorateMedia),
+      hero_slides: (slidesResult.results || []).map(item => ({ ...item, url: mediaUrl(item.object_key), poster_url: mediaUrl(item.poster_key) })),
       totals: totals || { days: 0, photos: 0, videos: 0, songs: 0 },
       setup: { required: !env.MEDIA, db_binding: true, r2_binding: Boolean(env.MEDIA), database_ready: true }
     }, 200, { 'cache-control': 'public,max-age=60,stale-while-revalidate=300' });

@@ -1,5 +1,9 @@
--- אזהרה: קובץ זה מוחק את כל הנתונים הקיימים במסד ומתקין את V10 מחדש.
+-- אזהרה: קובץ זה מוחק את כל הנתונים הקיימים במסד ומתקין את V12 מחדש.
 PRAGMA foreign_keys = OFF;
+DROP TABLE IF EXISTS newsletter_deliveries;
+DROP TABLE IF EXISTS newsletter_campaigns;
+DROP TABLE IF EXISTS contact_replies;
+DROP TABLE IF EXISTS homepage_slides;
 DROP TABLE IF EXISTS admin_audit;
 DROP TABLE IF EXISTS rate_limits;
 DROP TABLE IF EXISTS analytics_daily;

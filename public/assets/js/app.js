@@ -1,4 +1,4 @@
-const state = { settings: {}, days: [], songs: [], testimonials: [], currentTrack: -1, filter: 'all', query: '' };
+const state = { settings: {}, days: [], songs: [], testimonials: [], heroSlides: [], heroSlideIndex: 0, heroSlideTimer: null, currentTrack: -1, filter: 'all', query: '' };
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -69,7 +69,7 @@ function homepageVideoEmbedUrl(url, autoplay = false, loop = false, controls = t
 
 function homepageMediaType(slot, settings) {
   const configured = settings[`${slot}_media_type`];
-  if (['image','video'].includes(configured)) return configured;
+  if (['image','video','slideshow'].includes(configured)) return configured;
   if (settings[`${slot}_video_key`] || settings[`${slot}_video_url`]) return 'video';
   if (settings[`${slot}_image_key`]) return 'image';
   return 'default';
@@ -79,7 +79,11 @@ function renderHomepageMedia(slot, node, settings) {
   if (!node) return;
   const type = homepageMediaType(slot, settings);
   const title = slot === 'hero' ? (settings.hero_title || settings.camp_name) : (settings.story_title || settings.camp_name);
-  node.classList.remove('has-image','has-video');
+  node.classList.remove('has-image','has-video','has-slideshow');
+  if (slot === 'hero' && type === 'slideshow' && state.heroSlides.length) {
+    renderHeroSlideshow(node, state.heroSlides, title);
+    return;
+  }
   if (type === 'image' && settings[`${slot}_image_key`]) {
     node.classList.add('has-image');
     node.innerHTML = `<img src="${mediaUrl(settings[`${slot}_image_key`])}" alt="${escapeHtml(title)}" ${slot === 'hero' ? 'fetchpriority="high"' : 'loading="lazy"'}>`;
@@ -99,10 +103,42 @@ function renderHomepageMedia(slot, node, settings) {
       : `<video src="${escapeHtml(videoSource)}" ${poster ? `poster="${escapeHtml(poster)}"` : ''} ${autoplay ? 'autoplay muted' : ''} ${loop ? 'loop' : ''} ${controls ? 'controls' : ''} playsinline preload="metadata" aria-label="${escapeHtml(title)}"></video>`;
     return;
   }
-  node.classList.remove('has-image','has-video');
+  node.classList.remove('has-image','has-video','has-slideshow');
   node.innerHTML = slot === 'hero'
     ? `<div class="hero-placeholder"><span>🏕️</span><strong>${escapeHtml(settings.camp_name || 'קעמפ גן ישראל')}</strong><small>${escapeHtml(settings.city || '')}</small></div>`
     : `<span class="story-placeholder">☀️</span>`;
+}
+
+
+function clearHeroSlideTimer() {
+  if (state.heroSlideTimer) clearTimeout(state.heroSlideTimer);
+  state.heroSlideTimer = null;
+}
+
+function renderHeroSlideshow(node, slides, title) {
+  clearHeroSlideTimer();
+  node.classList.add('has-slideshow');
+  const published = slides.filter(slide => slide.status === 'published');
+  const items = published.length ? published : slides;
+  node.innerHTML = `<div class="hero-slides">${items.map((slide,index)=>{
+    const label=escapeHtml(slide.alt_text||slide.title||title||`שקופית ${index+1}`);
+    if(slide.kind==='video')return `<div class="hero-slide" data-slide-index="${index}"><video src="${escapeHtml(slide.url||mediaUrl(slide.object_key))}" ${slide.poster_url?`poster="${escapeHtml(slide.poster_url)}"`:''} muted playsinline preload="metadata" ${Number(slide.loop)?'loop':''} ${Number(slide.controls)?'controls':''} aria-label="${label}"></video></div>`;
+    return `<div class="hero-slide" data-slide-index="${index}"><img src="${escapeHtml(slide.url||mediaUrl(slide.object_key))}" alt="${label}" ${index===0?'fetchpriority="high"':'loading="lazy"'}></div>`;
+  }).join('')}</div>${items.length>1?`<button class="hero-slide-nav hero-slide-prev" type="button" aria-label="המדיה הקודמת">‹</button><button class="hero-slide-nav hero-slide-next" type="button" aria-label="המדיה הבאה">›</button><div class="hero-slide-dots">${items.map((_,i)=>`<button type="button" data-hero-dot="${i}" aria-label="מעבר לשקופית ${i+1}"></button>`).join('')}</div>`:''}`;
+  const slideNodes=$$('.hero-slide',node),dots=$$('[data-hero-dot]',node);
+  const activate=(index,manual=false)=>{
+    clearHeroSlideTimer();state.heroSlideIndex=(index+items.length)%items.length;
+    slideNodes.forEach((slide,i)=>{const active=i===state.heroSlideIndex;slide.classList.toggle('active',active);const video=$('video',slide);if(video){if(active&&Number(items[i].autoplay)!==0)video.play().catch(()=>{});else if(!active){video.pause();video.currentTime=0}}});
+    dots.forEach((dot,i)=>dot.classList.toggle('active',i===state.heroSlideIndex));
+    if(items.length>1&&!document.hidden){const seconds=Math.min(60,Math.max(2,Number(items[state.heroSlideIndex].duration_seconds||6)));state.heroSlideTimer=setTimeout(()=>activate(state.heroSlideIndex+1),seconds*1000)}
+  };
+  $('.hero-slide-prev',node)?.addEventListener('click',()=>activate(state.heroSlideIndex-1,true));
+  $('.hero-slide-next',node)?.addEventListener('click',()=>activate(state.heroSlideIndex+1,true));
+  dots.forEach(dot=>dot.addEventListener('click',()=>activate(Number(dot.dataset.heroDot),true)));
+  node.addEventListener('mouseenter',clearHeroSlideTimer);
+  node.addEventListener('mouseleave',()=>activate(state.heroSlideIndex));
+  document.addEventListener('visibilitychange',()=>document.hidden?clearHeroSlideTimer():activate(state.heroSlideIndex),{once:false});
+  activate(0);
 }
 
 function applySettings(settings) {
@@ -125,6 +161,7 @@ function applySettings(settings) {
 
   renderHomepageMedia('hero', $('#hero-media'), settings);
   renderHomepageMedia('story', $('#story-photo'), settings);
+  const recordCenter=$('#record-center');if(recordCenter){recordCenter.innerHTML=settings.record_center_image_key?`<img src="${mediaUrl(settings.record_center_image_key)}" alt="${escapeHtml(settings.camp_name||'קעמפ גן ישראל')}">`:'GI';}
   if (settings.logo_key) {
     $$('.brand-mark').forEach(mark => { mark.innerHTML = `<img src="${mediaUrl(settings.logo_key)}" alt="" style="width:100%;height:100%;object-fit:contain;padding:5px">`; });
   }
@@ -307,7 +344,7 @@ async function boot() {
   setText('#current-year',new Date().getFullYear()); initPlayer(); initForms(); initInteractions();
   try {
     const data=await fetchJson('/api/site');
-    applySettings(data.settings||{});renderAnnouncement(data.announcement);renderStats(data.totals||{});renderLatest(data.latest_day);renderDays(data.days||[]);renderSongs(data.songs||[]);renderTestimonials(data.testimonials||[]);
+    state.heroSlides=data.hero_slides||[];applySettings(data.settings||{});renderAnnouncement(data.announcement);renderStats(data.totals||{});renderLatest(data.latest_day);renderDays(data.days||[]);renderSongs(data.songs||[]);renderTestimonials(data.testimonials||[]);
     if(data.setup?.required) console.info('Camp setup required',data.setup);
   } catch(error) { toast('האתר נטען במצב בסיסי. נסו לרענן בעוד רגע.','error'); renderDays([]); }
   finally { $('#site-loader').classList.add('loaded'); track(location.pathname); }
