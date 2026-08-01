@@ -12,8 +12,8 @@
   <title>קעמפ גן ישראל חדרה</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/assets/css/main.css">
-  <script src="/assets/js/app.js" defer></script>
+  <link rel="stylesheet" href="/assets/css/main.css?v=11.0.0">
+  <script src="/assets/js/app.js?v=11.0.0" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">דלג לתוכן</a>
@@ -26,7 +26,7 @@
         <span class="brand-copy"><strong id="brand-name">קעמפ גן ישראל חדרה</strong><small id="brand-season">קיץ תשפ״ו</small></span>
       </a>
       <nav class="desktop-nav" aria-label="ניווט ראשי">
-        <a href="#galleries">גלריות</a><a href="#latest">היום האחרון</a><a href="#songs">המנונים</a><a href="#testimonials">הורים מספרים</a><a href="#updates">עדכונים</a><a href="#contact">יצירת קשר</a>
+        <a href="#galleries">גלריות</a><a href="#memories">רגעים</a><a href="#latest">היום האחרון</a><a href="#songs">המנונים</a><a href="#testimonials">הורים מספרים</a><a href="#updates">עדכונים</a><a href="#contact">יצירת קשר</a>
       </nav>
       <div class="header-actions">
         <button class="icon-button" id="search-open" aria-label="חיפוש בגלריות" title="חיפוש">
@@ -40,7 +40,7 @@
       </div>
     </div>
     <nav class="mobile-nav" id="mobile-nav" aria-label="ניווט לטלפון">
-      <a href="#galleries">גלריות</a><a href="#latest">היום האחרון</a><a href="#songs">המנונים</a><a href="#testimonials">הורים מספרים</a><a href="#updates">עדכונים</a><a href="#contact">יצירת קשר</a>
+      <a href="#galleries">גלריות</a><a href="#memories">רגעים</a><a href="#latest">היום האחרון</a><a href="#songs">המנונים</a><a href="#testimonials">הורים מספרים</a><a href="#updates">עדכונים</a><a href="#contact">יצירת קשר</a>
     </nav>
   </header>
 
@@ -86,6 +86,17 @@
         <div class="latest-card reveal" id="latest-card">
           <div class="latest-media skeleton-block"></div><div class="latest-content"><span class="pill">היום האחרון</span><h3>הגלריה הבאה בדרך</h3><p>ברגע שיעלה יום חדש הוא יופיע כאן עם הסרטון והתמונות.</p></div>
         </div>
+      </div>
+    </section>
+
+
+    <section class="section memories-section" id="memories">
+      <div class="container">
+        <div class="section-heading split-heading reveal"><div><span class="eyebrow">ישר מהשטח</span><h2 id="memories-title">הרגעים שחייבים <em>לראות</em></h2><p id="memories-text">טעימה מהתמונות האחרונות שעלו מהקעמפ.</p></div><a class="text-link" href="#galleries">לכל הגלריות <span>←</span></a></div>
+        <div class="memory-wall reveal" id="memory-wall" aria-live="polite">
+          <div class="memory-tile skeleton-block"></div><div class="memory-tile skeleton-block"></div><div class="memory-tile skeleton-block"></div><div class="memory-tile skeleton-block"></div>
+        </div>
+        <div class="empty-state is-hidden" id="memories-empty"><span>✨</span><h3>הרגעים הראשונים בדרך</h3><p>כשתעלו תמונות, הקיר הזה יתמלא אוטומטית.</p></div>
       </div>
     </section>
 
@@ -146,6 +157,12 @@
   <dialog class="modal" id="testimonial-modal"><form method="dialog" class="modal-card" id="testimonial-form"><button class="modal-close" type="button" data-close-dialog aria-label="סגירה">×</button><span class="eyebrow">ספרו לנו</span><h2>איך היה לכם בקעמפ?</h2><input class="honeypot" name="website" tabindex="-1" autocomplete="off"><div class="form-row"><label><span>שם</span><input name="name" required></label><label><span>הורה של / קשר</span><input name="relation" placeholder="אמא של..."></label></div><label><span>טלפון (לא יוצג באתר)</span><input name="phone" inputmode="tel"></label><fieldset class="rating-field"><legend>דירוג</legend><div class="star-rating"><input id="star5" name="rating" value="5" type="radio" checked><label for="star5">★</label><input id="star4" name="rating" value="4" type="radio"><label for="star4">★</label><input id="star3" name="rating" value="3" type="radio"><label for="star3">★</label><input id="star2" name="rating" value="2" type="radio"><label for="star2">★</label><input id="star1" name="rating" value="1" type="radio"><label for="star1">★</label></div></fieldset><label><span>התגובה שלכם</span><textarea name="message" required minlength="10" rows="5"></textarea></label><button class="button button-primary" type="submit">שליחת תגובה</button><p class="form-status" aria-live="polite"></p></form></dialog>
 
   <dialog class="search-modal" id="search-modal"><div class="search-panel"><button class="modal-close" id="search-close" aria-label="סגירה">×</button><label class="global-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><input id="global-search-input" type="search" placeholder="חפשו יום, תאריך או פעילות..." autofocus></label><div id="global-search-results" class="search-results"></div></div></dialog>
+
+
+  <nav class="mobile-dock" id="mobile-dock" aria-label="ניווט מהיר לטלפון">
+    <a href="#top"><span>⌂</span><small>בית</small></a><a href="#galleries"><span>▦</span><small>גלריות</small></a><a href="#memories"><span>✦</span><small>רגעים</small></a><a href="#updates"><span>✉</span><small>עדכונים</small></a>
+  </nav>
+  <aside class="install-prompt is-hidden" id="install-prompt"><span class="brand-mark">GI</span><div><strong>הוסיפו את הקעמפ למסך הבית</strong><small>גישה מהירה כמו אפליקציה</small></div><button class="button button-small button-primary" id="install-app">התקנה</button><button class="install-close" id="install-close" aria-label="סגירה">×</button></aside>
 
   <div class="toast-region" id="toast-region" aria-live="polite"></div>
   <button class="back-to-top" id="back-to-top" aria-label="חזרה למעלה">↑</button>

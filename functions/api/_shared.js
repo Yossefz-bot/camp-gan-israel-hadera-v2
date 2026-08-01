@@ -22,6 +22,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   testimonials_title: 'מה ההורים מספרים', testimonials_text: 'תגובות אמיתיות מהמשפחות שחוו את הקעמפ איתנו.',
   updates_title: 'נשארים מחוברים לקעמפ', updates_text: 'גלריות חדשות, סרטונים ועדכונים חשובים ישירות אליכם.',
   contact_title: 'יצירת קשר', contact_text: 'לשאלות, הרשמה ופרטים נוספים — נשמח לדבר.',
+  memories_title: 'הרגעים שחייבים לראות', memories_text: 'טעימה מהתמונות האחרונות שעלו מהשטח.',
+  show_memories: '1', show_mobile_dock: '1', show_install_prompt: '1',
   theme_primary: '#ff6b16', theme_secondary: '#173b67', theme_accent: '#ffd234',
   theme_green: '#31b86b', theme_purple: '#7b4ce2', theme_bg: '#fff9ef', theme_surface: '#ffffff',
   seo_title: 'קעמפ גן ישראל חדרה', seo_description: 'גלריות, סרטונים, המנונים ועדכונים מקעמפ גן ישראל חדרה',

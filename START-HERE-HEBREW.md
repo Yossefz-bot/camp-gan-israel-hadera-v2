@@ -1,4 +1,4 @@
-# מתחילים כאן — קעמפ גן ישראל חדרה V10 Pro
+# מתחילים כאן — קעמפ גן ישראל חדרה V11 Publish Ready
 
 הגרסה הזו בנויה במיוחד ל־Cloudflare Pages + Pages Functions + D1 + R2.
 
@@ -11,10 +11,10 @@
 1. חלץ את קובץ ה־ZIP.
 2. ב־GitHub Desktop לחץ **Show in Explorer**.
 3. מחק את כל הקבצים הישנים שבתיקיית המאגר.
-4. העתק לתיקיית המאגר את **כל מה שנמצא בתוך** התיקייה `camp-gan-israel-hadera-v10-pro`.
+4. העתק לתיקיית המאגר את **כל מה שנמצא בתוך** התיקייה `camp-gan-israel-hadera-v11-publish-ready`.
 5. ודא שאין במאגר קובץ בשם `wrangler.jsonc` או `wrangler.toml`.
 6. ב־GitHub Desktop בצע Commit בשם:
-   `Install Camp V10 Pro`
+   `Install Camp V11 Publish Ready`
 7. לחץ **Push origin**.
 
 ## 2. הגדרות הפרויקט ב־Cloudflare Pages

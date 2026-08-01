@@ -1,5 +1,5 @@
 {
-  "name": "קעמפ גן ישראל חדרה",
+  "name": "קעמפ גן ישראל חדרה — זיכרונות ועדכונים",
   "short_name": "קעמפ חדרה",
   "start_url": "/",
   "display": "standalone",
@@ -8,6 +8,19 @@
   "lang": "he",
   "dir": "rtl",
   "icons": [
-    {"src":"/favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "description": "גלריות, סרטונים ועדכונים מקעמפ גן ישראל חדרה",
+  "id": "/",
+  "scope": "/",
+  "categories": [
+    "education",
+    "photo",
+    "lifestyle"
   ]
 }
