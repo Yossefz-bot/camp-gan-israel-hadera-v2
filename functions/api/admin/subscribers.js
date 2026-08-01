@@ -6,7 +6,7 @@ export async function onRequest({request,env}){
   if(!env.DB)return json({error:'db_binding_missing'},503);
   try{
     if(request.method==='GET'){
-      const url=new URL(request.url),search=clean(url.searchParams.get('search'),120),status=clean(url.searchParams.get('status'),20),limit=Math.min(500,Math.max(1,integer(url.searchParams.get('limit'),200))),offset=Math.max(0,integer(url.searchParams.get('offset'),0));
+      const url=new URL(request.url),search=clean(url.searchParams.get('search'),120),status=clean(url.searchParams.get('status'),20),limit=Math.min(2000,Math.max(1,integer(url.searchParams.get('limit'),200))),offset=Math.max(0,integer(url.searchParams.get('offset'),0));
       const filters=['1=1'],bindings=[];
       if(['active','unsubscribed'].includes(status)){filters.push('status=?');bindings.push(status)}
       if(search){filters.push('(name LIKE ? OR phone LIKE ? OR email LIKE ?)');bindings.push(`%${search}%`,`%${search}%`,`%${search}%`)}

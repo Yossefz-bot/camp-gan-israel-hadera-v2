@@ -2,7 +2,3 @@ ADMIN_PASSWORD=change-me
 SESSION_SECRET=replace-with-a-long-random-secret-at-least-32-characters
 SESSION_TTL_HOURS=12
 MAX_UPLOAD_MB=95
-RESEND_API_KEY=re_xxxxxxxxx
-EMAIL_FROM=קעמפ גן ישראל חדרה <updates@updates.example.com>
-EMAIL_REPLY_TO=info@example.com
-PUBLIC_SITE_URL=https://camp-gan-israel-hadera-v2.pages.dev

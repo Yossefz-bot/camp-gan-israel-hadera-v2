@@ -78,17 +78,48 @@ export async function onRequest({ request, env }) {
     }
 
     if (request.method === 'DELETE') {
-      const ids = Array.isArray(body.ids) ? body.ids.map(integer).filter(Boolean).slice(0,1000) : [integer(body.id)].filter(Boolean);
-      if (!ids.length) return json({ error: 'id_required' }, 400);
-      const placeholders = ids.map(() => '?').join(',');
-      const rows = await env.DB.prepare(`SELECT id,object_key FROM media WHERE id IN (${placeholders})`).bind(...ids).all();
-      const keys = (rows.results || []).map(row => row.object_key).filter(Boolean);
-      if (env.MEDIA && keys.length) {
-        for (let index = 0; index < keys.length; index += 1000) await env.MEDIA.delete(keys.slice(index,index+1000));
+      const requestedIds = Array.isArray(body.ids) ? body.ids : [body.id];
+      const ids = [...new Set(requestedIds.map(integer).filter(Boolean))].slice(0,1000);
+      if (!ids.length) return json({ error: 'id_required', message: 'לא נבחרו קבצים למחיקה.' }, 400);
+
+      const records = [];
+      for (let index = 0; index < ids.length; index += 80) {
+        const chunk = ids.slice(index,index+80), placeholders = chunk.map(() => '?').join(',');
+        const rows = await env.DB.prepare(`SELECT id,object_key FROM media WHERE id IN (${placeholders})`).bind(...chunk).all();
+        records.push(...(rows.results || []));
       }
-      await env.DB.prepare(`DELETE FROM media WHERE id IN (${placeholders})`).bind(...ids).run();
-      await audit(env, 'delete_media', 'media', '', `${ids.length} items`);
-      return json({ ok: true, deleted: ids.length });
+      if (!records.length) return json({ ok: true, deleted: 0 });
+
+      const existingIds = records.map(row => Number(row.id)).filter(Boolean);
+      const keys = [...new Set(records.map(row => row.object_key).filter(Boolean))];
+      const settingKeys = "'hero_image_key','hero_video_key','hero_video_poster_key','story_image_key','story_video_key','story_video_poster_key','record_center_image_key'";
+
+      for (let index = 0; index < keys.length; index += 60) {
+        const chunk = keys.slice(index,index+60), placeholders = chunk.map(() => '?').join(',');
+        await env.DB.batch([
+          env.DB.prepare(`UPDATE days SET cover_key='',updated_at=CURRENT_TIMESTAMP WHERE cover_key IN (${placeholders})`).bind(...chunk),
+          env.DB.prepare(`DELETE FROM homepage_slides WHERE object_key IN (${placeholders}) OR poster_key IN (${placeholders})`).bind(...chunk,...chunk),
+          env.DB.prepare(`UPDATE settings SET value='',updated_at=CURRENT_TIMESTAMP WHERE key IN (${settingKeys}) AND value IN (${placeholders})`).bind(...chunk)
+        ]);
+      }
+      for (let index = 0; index < existingIds.length; index += 80) {
+        const chunk = existingIds.slice(index,index+80), placeholders = chunk.map(() => '?').join(',');
+        await env.DB.prepare(`DELETE FROM media WHERE id IN (${placeholders})`).bind(...chunk).run();
+      }
+
+      let storageWarning = '';
+      if (keys.length) {
+        if (!env.MEDIA) storageWarning = 'המידע נמחק מהמסד, אך R2 אינו מחובר ולכן הקבצים נשארו באחסון.';
+        else {
+          try {
+            for (let index = 0; index < keys.length; index += 1000) await env.MEDIA.delete(keys.slice(index,index+1000));
+          } catch (error) {
+            storageWarning = `המידע נמחק מהאתר, אך ניקוי חלק מהקבצים ב־R2 נכשל: ${error.message}`;
+          }
+        }
+      }
+      await audit(env, 'delete_media', 'media', '', `${existingIds.length} items`);
+      return json({ ok: true, deleted: existingIds.length, warning: storageWarning });
     }
 
     return json({ error: 'method_not_allowed' }, 405, { Allow: 'GET, PATCH, DELETE' });

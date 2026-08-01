@@ -1,5 +1,4 @@
 import { json } from '../_shared.js';
-import { emailConfigDetail, emailReady } from '../_email.js';
 import { requireAdmin, secretsReady } from './_auth.js';
 
 export async function onRequestGet({ request, env }) {
@@ -12,7 +11,6 @@ export async function onRequestGet({ request, env }) {
     database_ready: false,
     r2_binding: Boolean(env.MEDIA),
     r2_ready: false,
-    email_ready: emailReady(env),
     time: new Date().toISOString(),
     checks: []
   };
@@ -40,7 +38,7 @@ export async function onRequestGet({ request, env }) {
   } else result.checks.push({ name: 'R2', ok: false, detail: 'Binding בשם MEDIA לא הוגדר' });
 
   result.checks.push({ name: 'סודות מנהל', ok: result.admin_secrets, detail: result.admin_secrets ? 'מוגדרים' : 'יש להגדיר ADMIN_PASSWORD ו-SESSION_SECRET' });
-  result.checks.push({ name: 'שליחת מיילים', ok: result.email_ready, detail: emailConfigDetail(env) });
-  result.ok = result.admin_secrets && result.database_ready && result.r2_ready && result.email_ready;
+  result.checks.push({ name: 'WhatsApp', ok: true, detail: 'המענה והתפוצה נפתחים ישירות ב־WhatsApp ללא API חיצוני' });
+  result.ok = result.admin_secrets && result.database_ready && result.r2_ready;
   return json(result, result.ok ? 200 : 503);
 }
