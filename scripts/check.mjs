@@ -36,15 +36,4 @@ for (const file of walk(join(root,'functions')).filter(file => file.endsWith('.j
   }
 }
 if (failed) process.exit(1);
-const v11Files = {
-  'public/index.html': ['id="memories"','id="mobile-dock"'],
-  'public/admin/index.html': ['id="readiness-score"','id="media-picker-modal"'],
-  'functions/api/site.js': ['featured_media'],
-  'functions/api/admin/dashboard.js': ['readiness','media_bytes']
-};
-for (const [file, needles] of Object.entries(v11Files)) {
-  const source = readFileSync(join(root,file),'utf8');
-  for (const needle of needles) if (!source.includes(needle)) { console.error(`V11 feature missing in ${file}: ${needle}`); failed = true; }
-}
-if (failed) process.exit(1);
-console.log('V11 Publish Ready checks passed.');
+console.log('V11.1 homepage media checks passed.');

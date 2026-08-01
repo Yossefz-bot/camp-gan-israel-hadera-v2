@@ -3,11 +3,11 @@ import { requireAdmin } from './_auth.js';
 
 const ALLOWED_KEYS = new Set([
   'site_title','camp_name','city','season_label','phone','whatsapp','email','address','map_url','instagram_url','youtube_url','facebook_url',
-  'hero_kicker','hero_title','hero_text','hero_image_key','hero_video_url','hero_primary_button_text','hero_primary_button_url','hero_secondary_button_text','hero_secondary_button_url',
-  'registration_button_text','registration_button_url','countdown_target','story_kicker','story_title','story_text','story_image_key','logo_key','footer_logo_1_key','footer_logo_2_key','footer_logo_3_key','footer_text',
-  'gallery_title','gallery_text','memories_title','memories_text','songs_title','songs_text','testimonials_title','testimonials_text','updates_title','updates_text','contact_title','contact_text',
+  'hero_kicker','hero_title','hero_text','hero_media_type','hero_image_key','hero_video_key','hero_video_url','hero_video_poster_key','hero_video_autoplay','hero_video_loop','hero_video_controls','hero_primary_button_text','hero_primary_button_url','hero_secondary_button_text','hero_secondary_button_url',
+  'registration_button_text','registration_button_url','countdown_target','story_kicker','story_title','story_text','story_media_type','story_image_key','story_video_key','story_video_url','story_video_poster_key','story_video_autoplay','story_video_loop','story_video_controls','logo_key','footer_logo_1_key','footer_logo_2_key','footer_logo_3_key','footer_text',
+  'gallery_title','gallery_text','songs_title','songs_text','testimonials_title','testimonials_text','updates_title','updates_text','contact_title','contact_text',
   'theme_primary','theme_secondary','theme_accent','theme_green','theme_purple','theme_bg','theme_surface','seo_title','seo_description','seo_keywords','gallery_sort',
-  'show_testimonials','show_songs','show_countdown','show_memories','show_mobile_dock','show_install_prompt','allow_testimonial_submission','allow_newsletter_signup','allow_contact_form'
+  'show_testimonials','show_songs','show_countdown','allow_testimonial_submission','allow_newsletter_signup','allow_contact_form'
 ]);
 
 function validColor(value) {
@@ -34,7 +34,8 @@ export async function onRequest({ request, env }) {
     let value = clean(raw, key.includes('text') || key.includes('description') ? 12000 : 1600);
     if (key.startsWith('theme_') && !validColor(value)) return json({ error: 'invalid_color', message: `הצבע ${key} אינו תקין.` }, 400);
     if ((key.endsWith('_url') || key === 'map_url') && !isHttpUrl(value, true)) return json({ error: 'invalid_url', message: `הקישור ${key} אינו תקין.` }, 400);
-    if (['show_testimonials','show_songs','show_countdown','show_memories','show_mobile_dock','show_install_prompt','allow_testimonial_submission','allow_newsletter_signup','allow_contact_form'].includes(key)) value = value === '1' || value === 'true' ? '1' : '0';
+    if (['show_testimonials','show_songs','show_countdown','allow_testimonial_submission','allow_newsletter_signup','allow_contact_form','hero_video_autoplay','hero_video_loop','hero_video_controls','story_video_autoplay','story_video_loop','story_video_controls'].includes(key)) value = value === '1' || value === 'true' ? '1' : '0';
+    if (['hero_media_type','story_media_type'].includes(key)) value = ['default','image','video'].includes(value) ? value : 'default';
     if (key === 'gallery_sort') value = value === 'newest' ? 'newest' : 'oldest';
     entries.push([key, value]);
   }

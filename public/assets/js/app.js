@@ -1,4 +1,4 @@
-const state = { settings: {}, days: [], songs: [], testimonials: [], featuredMedia: [], currentTrack: -1, filter: 'all', query: '', installPrompt: null };
+const state = { settings: {}, days: [], songs: [], testimonials: [], currentTrack: -1, filter: 'all', query: '' };
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -43,6 +43,68 @@ function setLink(node, url, text) {
   } else node.classList.add('is-hidden');
 }
 
+function homepageVideoEmbedUrl(url, autoplay = false, loop = false, controls = true) {
+  const text = String(url || '').trim();
+  if (!text) return '';
+  try {
+    const parsed = new URL(text, location.origin);
+    const host = parsed.hostname.replace(/^www\./, '');
+    if (host === 'youtu.be' || host.endsWith('youtube.com')) {
+      const id = host === 'youtu.be' ? parsed.pathname.slice(1) : parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).pop();
+      if (!id) return text;
+      const params = new URLSearchParams({ rel:'0', playsinline:'1', controls:controls ? '1' : '0' });
+      if (autoplay) { params.set('autoplay','1'); params.set('mute','1'); }
+      if (loop) { params.set('loop','1'); params.set('playlist', id); }
+      return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?${params}`;
+    }
+    if (host === 'vimeo.com' || host.endsWith('.vimeo.com')) {
+      const id = parsed.pathname.split('/').filter(Boolean).pop();
+      if (!id) return text;
+      const params = new URLSearchParams({ autoplay:autoplay ? '1' : '0', muted:autoplay ? '1' : '0', loop:loop ? '1' : '0', controls:controls ? '1' : '0' });
+      return `https://player.vimeo.com/video/${encodeURIComponent(id)}?${params}`;
+    }
+  } catch {}
+  return text;
+}
+
+function homepageMediaType(slot, settings) {
+  const configured = settings[`${slot}_media_type`];
+  if (['image','video'].includes(configured)) return configured;
+  if (settings[`${slot}_video_key`] || settings[`${slot}_video_url`]) return 'video';
+  if (settings[`${slot}_image_key`]) return 'image';
+  return 'default';
+}
+
+function renderHomepageMedia(slot, node, settings) {
+  if (!node) return;
+  const type = homepageMediaType(slot, settings);
+  const title = slot === 'hero' ? (settings.hero_title || settings.camp_name) : (settings.story_title || settings.camp_name);
+  node.classList.remove('has-image','has-video');
+  if (type === 'image' && settings[`${slot}_image_key`]) {
+    node.classList.add('has-image');
+    node.innerHTML = `<img src="${mediaUrl(settings[`${slot}_image_key`])}" alt="${escapeHtml(title)}" ${slot === 'hero' ? 'fetchpriority="high"' : 'loading="lazy"'}>`;
+    return;
+  }
+  const videoSource = settings[`${slot}_video_key`] ? mediaUrl(settings[`${slot}_video_key`]) : settings[`${slot}_video_url`] || '';
+  if (type === 'video' && videoSource) {
+    const autoplay = truthy(settings[`${slot}_video_autoplay`]);
+    const loop = truthy(settings[`${slot}_video_loop`]);
+    const controls = truthy(settings[`${slot}_video_controls`]) || !autoplay;
+    const poster = settings[`${slot}_video_poster_key`] ? mediaUrl(settings[`${slot}_video_poster_key`]) : '';
+    const embed = homepageVideoEmbedUrl(videoSource, autoplay, loop, controls);
+    const isEmbed = /youtube(?:-nocookie)?\.com\/embed|player\.vimeo\.com\/video/.test(embed);
+    node.classList.add('has-video');
+    node.innerHTML = isEmbed
+      ? `<iframe src="${escapeHtml(embed)}" title="${escapeHtml(title)}" allow="autoplay; fullscreen; picture-in-picture" loading="${slot === 'hero' ? 'eager' : 'lazy'}" allowfullscreen></iframe>`
+      : `<video src="${escapeHtml(videoSource)}" ${poster ? `poster="${escapeHtml(poster)}"` : ''} ${autoplay ? 'autoplay muted' : ''} ${loop ? 'loop' : ''} ${controls ? 'controls' : ''} playsinline preload="metadata" aria-label="${escapeHtml(title)}"></video>`;
+    return;
+  }
+  node.classList.remove('has-image','has-video');
+  node.innerHTML = slot === 'hero'
+    ? `<div class="hero-placeholder"><span>🏕️</span><strong>${escapeHtml(settings.camp_name || 'קעמפ גן ישראל')}</strong><small>${escapeHtml(settings.city || '')}</small></div>`
+    : `<span class="story-placeholder">☀️</span>`;
+}
+
 function applySettings(settings) {
   state.settings = settings;
   const root = document.documentElement;
@@ -61,10 +123,8 @@ function applySettings(settings) {
   $('meta[property="og:title"]')?.setAttribute('content', settings.seo_title || settings.camp_name || '');
   $('meta[property="og:description"]')?.setAttribute('content', settings.seo_description || '');
 
-  const heroMedia = $('#hero-media');
-  if (settings.hero_video_url) heroMedia.innerHTML = heroVideo(settings.hero_video_url, settings.hero_title || settings.camp_name);
-  else if (settings.hero_image_key) heroMedia.innerHTML = `<img src="${mediaUrl(settings.hero_image_key)}" alt="${escapeHtml(settings.hero_title || settings.camp_name)}" fetchpriority="high" decoding="async">`;
-  if (settings.story_image_key) $('#story-photo').innerHTML = `<img src="${mediaUrl(settings.story_image_key)}" alt="${escapeHtml(settings.story_title)}" loading="lazy">`;
+  renderHomepageMedia('hero', $('#hero-media'), settings);
+  renderHomepageMedia('story', $('#story-photo'), settings);
   if (settings.logo_key) {
     $$('.brand-mark').forEach(mark => { mark.innerHTML = `<img src="${mediaUrl(settings.logo_key)}" alt="" style="width:100%;height:100%;object-fit:contain;padding:5px">`; });
   }
@@ -76,11 +136,8 @@ function applySettings(settings) {
   $('#songs')?.classList.toggle('is-hidden', !truthy(settings.show_songs));
   $('#testimonials')?.classList.toggle('is-hidden', !truthy(settings.show_testimonials));
   $('#updates')?.classList.toggle('is-hidden', !truthy(settings.allow_newsletter_signup));
-  $('#memories')?.classList.toggle('is-hidden', !truthy(settings.show_memories));
-  $('#mobile-dock')?.classList.toggle('is-hidden', !truthy(settings.show_mobile_dock));
   $('#contact-form')?.classList.toggle('is-hidden', !truthy(settings.allow_contact_form));
   $('#testimonial-open')?.classList.toggle('is-hidden', !truthy(settings.allow_testimonial_submission));
-  setText('#memories-title', settings.memories_title); setText('#memories-text', settings.memories_text);
   if (truthy(settings.show_countdown) && settings.countdown_target) startCountdown(settings.countdown_target); else $('#countdown')?.classList.add('is-hidden');
 }
 
@@ -89,15 +146,6 @@ function highlightLast(text) {
   if (words.length < 2) return escapeHtml(text);
   const last = words.pop();
   return `${escapeHtml(words.join(' '))} <em>${escapeHtml(last)}</em>`;
-}
-
-function heroVideo(src, title) {
-  const safe = escapeHtml(src);
-  const youtube = src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]+)/);
-  const vimeo = src.match(/vimeo\.com\/(\d+)/);
-  if (youtube) return `<iframe src="https://www.youtube-nocookie.com/embed/${youtube[1]}?autoplay=1&mute=1&loop=1&playlist=${youtube[1]}&controls=0&modestbranding=1" title="${escapeHtml(title)}" allow="autoplay; encrypted-media; picture-in-picture" loading="eager"></iframe>`;
-  if (vimeo) return `<iframe src="https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&loop=1&background=1" title="${escapeHtml(title)}" allow="autoplay; fullscreen; picture-in-picture" loading="eager"></iframe>`;
-  return `<video src="${safe}" autoplay muted loop playsinline preload="metadata" aria-label="${escapeHtml(title)}"></video>`;
 }
 
 function configureContact(settings) {
@@ -162,22 +210,6 @@ function filterDays() {
     if (matchSearch && matchFilter) visible += 1;
   });
   $('#days-empty').classList.toggle('is-hidden', visible > 0);
-}
-
-function renderMemories(items) {
-  state.featuredMedia = items || [];
-  const wall = $('#memory-wall');
-  if (!wall) return;
-  if (!state.featuredMedia.length) {
-    wall.innerHTML = '';
-    $('#memories-empty')?.classList.remove('is-hidden');
-    return;
-  }
-  $('#memories-empty')?.classList.add('is-hidden');
-  wall.innerHTML = state.featuredMedia.map((item, index) => {
-    const href = item.day_slug ? `/day.html?slug=${encodeURIComponent(item.day_slug)}` : item.url;
-    return `<a class="memory-tile memory-${index % 6}" href="${href}" ${item.day_slug ? '' : 'target="_blank" rel="noopener"'}><img src="${item.url}" alt="${escapeHtml(item.alt_text || item.title || item.day_title || 'רגע מהקעמפ')}" loading="lazy" decoding="async"><span><strong>${escapeHtml(item.day_label || item.day_title || 'מהקעמפ')}</strong><small>${escapeHtml(item.caption || item.title || 'פתיחת התמונה')}</small></span></a>`;
-  }).join('');
 }
 
 function renderTestimonials(items) {
@@ -246,31 +278,12 @@ function initInteractions() {
   $('#search-close').addEventListener('click',()=>$('#search-modal').close());
   $('#global-search-input').addEventListener('input',event=>renderSearch(event.target.value));
   $('#search-modal').addEventListener('click',event=>{if(event.target===$('#search-modal'))$('#search-modal').close();});
-  initTheme(); initReveals(); initPwa();
+  initTheme(); initReveals();
 }
 
 function renderSearch(query) {
   const q=query.trim().toLowerCase(); const results=q?state.days.filter(day=>`${day.title} ${day.label} ${day.date} ${day.hebrew_date} ${day.description}`.toLowerCase().includes(q)):state.days.slice(0,6);
   $('#global-search-results').innerHTML=results.length?results.map(day=>`<a class="search-result" href="/day.html?slug=${encodeURIComponent(day.slug)}">${day.cover_url?`<img src="${day.cover_url}" alt="">`:'<span class="stat-icon">📷</span>'}<div><strong>${escapeHtml(day.title)}</strong><small>${escapeHtml(day.hebrew_date||formatDate(day.date)||`${day.photo_count||0} תמונות`)}</small></div></a>`).join(''):'<div class="empty-state"><span>🔎</span><h3>לא נמצאו תוצאות</h3></div>';
-}
-
-function initPwa() {
-  const box = $('#install-prompt');
-  const install = $('#install-app');
-  const close = $('#install-close');
-  if (!box || !install || !close) return;
-  const dismissed = localStorage.getItem('camp-install-dismissed') === '1';
-  window.addEventListener('beforeinstallprompt', event => {
-    event.preventDefault(); state.installPrompt = event;
-    if (!dismissed && truthy(state.settings.show_install_prompt ?? '1')) box.classList.remove('is-hidden');
-  });
-  install.addEventListener('click', async () => {
-    if (!state.installPrompt) return;
-    state.installPrompt.prompt(); await state.installPrompt.userChoice.catch(() => null);
-    state.installPrompt = null; box.classList.add('is-hidden'); track('/', 'install_prompt');
-  });
-  close.addEventListener('click', () => { box.classList.add('is-hidden'); localStorage.setItem('camp-install-dismissed','1'); });
-  window.addEventListener('appinstalled', () => { box.classList.add('is-hidden'); toast('האפליקציה נוספה למסך הבית'); });
 }
 
 function initTheme() {
@@ -288,32 +301,13 @@ function startCountdown(target) {
   const update=()=>{const diff=Math.max(0,date-Date.now());const days=Math.floor(diff/86400000),hours=Math.floor(diff/3600000)%24,minutes=Math.floor(diff/60000)%60,seconds=Math.floor(diff/1000)%60;setText('#count-days',String(days).padStart(2,'0'));setText('#count-hours',String(hours).padStart(2,'0'));setText('#count-minutes',String(minutes).padStart(2,'0'));setText('#count-seconds',String(seconds).padStart(2,'0'));if(diff<=0)clearInterval(timer);};update();const timer=setInterval(update,1000);
 }
 
-function applyStructuredData(data) {
-  const settings = data.settings || {};
-  const schema = {
-    '@context': 'https://schema.org', '@type': 'Organization',
-    name: settings.camp_name || settings.site_title, url: location.origin,
-    description: settings.seo_description || settings.hero_text,
-    email: settings.email || undefined, telephone: settings.phone || undefined,
-    address: settings.address ? { '@type':'PostalAddress', streetAddress: settings.address, addressLocality: settings.city || '' } : undefined
-  };
-  let node = $('#site-structured-data');
-  if (!node) { node = document.createElement('script'); node.id='site-structured-data'; node.type='application/ld+json'; document.head.append(node); }
-  node.textContent = JSON.stringify(schema);
-  const firstImage = data.featured_media?.[0]?.url || (settings.hero_image_key ? mediaUrl(settings.hero_image_key) : '');
-  if (firstImage) {
-    let og = $('meta[property="og:image"]'); if (!og) { og=document.createElement('meta'); og.setAttribute('property','og:image'); document.head.append(og); }
-    og.setAttribute('content', new URL(firstImage, location.origin).href);
-  }
-}
-
 async function track(page='/',event='view') { try{await fetch('/api/track',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({page,event}),keepalive:true});}catch{} }
 
 async function boot() {
   setText('#current-year',new Date().getFullYear()); initPlayer(); initForms(); initInteractions();
   try {
     const data=await fetchJson('/api/site');
-    applySettings(data.settings||{});applyStructuredData(data);renderAnnouncement(data.announcement);renderStats(data.totals||{});renderLatest(data.latest_day);renderDays(data.days||[]);renderMemories(data.featured_media||[]);renderSongs(data.songs||[]);renderTestimonials(data.testimonials||[]);
+    applySettings(data.settings||{});renderAnnouncement(data.announcement);renderStats(data.totals||{});renderLatest(data.latest_day);renderDays(data.days||[]);renderSongs(data.songs||[]);renderTestimonials(data.testimonials||[]);
     if(data.setup?.required) console.info('Camp setup required',data.setup);
   } catch(error) { toast('האתר נטען במצב בסיסי. נסו לרענן בעוד רגע.','error'); renderDays([]); }
   finally { $('#site-loader').classList.add('loaded'); track(location.pathname); }

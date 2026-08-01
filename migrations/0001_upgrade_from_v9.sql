@@ -95,7 +95,7 @@ CREATE INDEX IF NOT EXISTS idx_contacts_status_created ON contact_messages(statu
 CREATE INDEX IF NOT EXISTS idx_audit_created ON admin_audit(created_at,id);
 
 INSERT OR IGNORE INTO settings(key,value) VALUES
-('season_label','קיץ תשפ״ו'),('hebrew_date',''),('hero_video_url',''),('hero_primary_button_text','לגלריות הקעמפ'),('hero_primary_button_url','#galleries'),
+('season_label','קיץ תשפ״ו'),('hebrew_date',''),('hero_media_type','default'),('hero_video_key',''),('hero_video_url',''),('hero_video_poster_key',''),('hero_video_autoplay','1'),('hero_video_loop','1'),('hero_video_controls','0'),('story_media_type','default'),('story_video_key',''),('story_video_url',''),('story_video_poster_key',''),('story_video_autoplay','1'),('story_video_loop','1'),('story_video_controls','0'),('hero_primary_button_text','לגלריות הקעמפ'),('hero_primary_button_url','#galleries'),
 ('hero_secondary_button_text','צפו בסרטון'),('hero_secondary_button_url','#latest'),('countdown_target',''),('theme_green','#31b86b'),('theme_purple','#7b4ce2'),
 ('map_url',''),('instagram_url',''),('youtube_url',''),('facebook_url',''),('show_testimonials','1'),('show_songs','1'),('show_countdown','0'),
 ('allow_testimonial_submission','1'),('allow_newsletter_signup','1'),('allow_contact_form','1');
