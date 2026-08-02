@@ -79,3 +79,101 @@
 .media-bulk-select,.media-bulk-input{min-height:36px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text);padding:6px 10px;font:inherit;max-width:180px}.media-bulk-input{width:145px}@media(max-width:800px){.media-bulk-select,.media-bulk-input{max-width:none;width:100%;flex:1 1 180px}}
 
 .media-folders{display:flex;gap:10px;overflow:auto;padding:4px 0 14px}.media-folder{min-width:120px;border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:13px;display:grid;gap:5px;text-align:right;color:var(--text)}.media-folder span{font-size:24px}.media-folder.active{border-color:var(--primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 18%,transparent)}.text-override-row{display:grid;grid-template-columns:minmax(160px,.7fr) 1.5fr 40px;gap:10px;align-items:start;margin-bottom:10px}.text-override-row button{height:42px;border:0;border-radius:10px;background:#fee;color:#a22;font-size:22px}.audio-artwork-field{margin-top:16px}.audio-artwork-field.is-hidden{display:none}.audio-artwork-field .record-center-preview img{width:100%;height:100%;object-fit:cover;border-radius:50%}@media(max-width:680px){.text-override-row{grid-template-columns:1fr 40px}.text-override-row textarea{grid-column:1/-1}}
+
+
+/* V15 Mobile Admin — ניהול מלא מהטלפון */
+@media (max-width: 760px){
+  .admin-body{padding-bottom:env(safe-area-inset-bottom)}
+  .login-screen{min-height:100dvh}
+  .login-card{width:100%;max-width:none;padding:24px 18px}
+  .login-card h2{font-size:32px}
+  .admin-topbar{height:68px;padding:0 10px;gap:9px}
+  .admin-topbar h1{font-size:17px;max-width:48vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .admin-menu{width:44px;height:44px;flex:0 0 44px}
+  .topbar-actions{gap:6px}
+  .topbar-actions .icon-button{width:42px;height:42px}
+  .admin-content{padding:10px}
+  .admin-sidebar{width:min(88vw,330px);padding:16px 12px}
+  .admin-logo{height:58px}
+  .admin-nav{padding:14px 0 90px}
+  .admin-nav button{height:50px}
+  .welcome-banner{min-height:0;padding:22px 18px;border-radius:20px}
+  .welcome-banner h2{font-size:27px}
+  .welcome-banner .button{width:100%}
+  .banner-tent{font-size:95px;left:4%;bottom:-16px}
+  .admin-stats{grid-template-columns:1fr 1fr;gap:8px}
+  .admin-stat{min-width:0;padding:11px 9px;border-radius:16px;gap:8px}
+  .admin-stat>span{width:38px;height:38px;font-size:20px;flex:0 0 38px}
+  .admin-stat strong{font-size:20px}
+  .admin-stat small{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .admin-card{padding:16px 13px;border-radius:18px;margin-bottom:12px}
+  .card-heading{align-items:flex-start;gap:10px;flex-direction:column}
+  .view-toolbar{gap:12px;margin-bottom:16px}
+  .view-toolbar h2{font-size:25px}
+  .toolbar-actions{display:grid!important;grid-template-columns:1fr;gap:8px;width:100%}
+  .toolbar-actions .button,.toolbar-actions>a{width:100%}
+  .day-admin-card{grid-template-columns:64px minmax(0,1fr);gap:11px;padding:11px;border-radius:16px}
+  .day-admin-cover{width:64px;height:64px;border-radius:13px}
+  .day-admin-copy h3{font-size:17px}
+  .day-admin-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .day-admin-actions .action-button{width:100%;padding:0 8px}
+  .upload-zone{padding:28px 14px;border-radius:18px}
+  .upload-zone h3{font-size:20px}
+  .upload-settings{gap:10px}
+  .media-folders{margin-inline:-3px;padding-bottom:10px;scroll-snap-type:x proximity}
+  .media-folder{min-width:105px;padding:10px;border-radius:14px;scroll-snap-align:start}
+  .media-folder span{font-size:20px}
+  .media-toolbar{gap:9px}
+  .admin-search{width:100%}
+  .admin-media-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .admin-media-item{border-radius:14px}
+  .admin-media-item .media-thumb{aspect-ratio:1}
+  .admin-media-copy{padding:9px}
+  .admin-media-copy strong{font-size:11px}
+  .admin-media-actions{padding:7px}
+  .media-selection-bar{gap:10px;padding:12px;border-radius:16px}
+  .media-selection-actions{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:7px}
+  .media-selection-actions>*{min-width:0!important;width:100%!important}
+  .media-selection-actions>strong{grid-column:1/-1}
+  .media-selection-actions #media-bulk-delete{grid-column:1/-1}
+  .media-bulk-select,.media-bulk-input{font-size:14px!important;min-height:44px}
+  .settings-tabs{margin-inline:-3px;padding-bottom:5px;scroll-snap-type:x proximity}
+  .settings-tabs button{scroll-snap-align:start;min-height:44px}
+  .settings-panel{min-width:0}
+  .field-grid,.toggle-grid,.color-grid{grid-template-columns:1fr}
+  .form-field input,.form-field textarea,.form-field select{font-size:16px!important;min-height:48px}
+  .toggle-card{min-height:56px}
+  .text-override-row{grid-template-columns:1fr 42px}
+  .text-override-row textarea{grid-column:1/-1}
+  .homepage-media-preview{min-height:260px}
+  .home-media-picker-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .hero-slide-admin{grid-template-columns:65px minmax(0,1fr);padding:10px}
+  .hero-slide-thumb{width:65px;height:65px}
+  .hero-slide-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .review-grid,.message-grid{grid-template-columns:1fr}
+  .message-card,.review-card{padding:15px;border-radius:17px}
+  .message-contact{display:grid;gap:6px}
+  .table-wrap{overflow:auto;margin-inline:-13px;padding-inline:13px}
+  table{min-width:720px}
+  .admin-modal-card{width:100vw;max-height:100dvh;height:auto;border-radius:22px 22px 0 0;padding:20px 14px;margin-top:auto}
+  .admin-modal[open]{display:flex;align-items:flex-end;justify-content:center}
+  .modal-heading h2{font-size:25px}
+  .modal-actions{display:grid;grid-template-columns:1fr;gap:8px}
+  .modal-actions .button{width:100%}
+  .health-hero{padding:17px;align-items:flex-start}
+  .health-grid{grid-template-columns:1fr}
+  .whatsapp-queue-card{width:100vw}
+  .whatsapp-current-recipient{padding:14px}
+  .whatsapp-queue-actions{grid-template-columns:1fr}
+  .whatsapp-queue-actions .button-whatsapp{grid-column:auto}
+}
+@media (max-width: 420px){
+  .admin-stats{grid-template-columns:1fr}
+  .admin-media-grid{grid-template-columns:1fr 1fr}
+  .day-admin-actions{grid-template-columns:1fr}
+  .home-media-picker-grid{grid-template-columns:1fr 1fr}
+}
+@media (hover:none) and (pointer:coarse){
+  .admin-nav button,.action-button,.button,.icon-button{touch-action:manipulation}
+  .action-button{min-height:44px}
+}

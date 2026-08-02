@@ -38,3 +38,126 @@
 @media(max-width:520px){.hero-slide-nav{opacity:1;width:36px;height:46px}.record span#record-center{width:64px;height:64px}}
 
 .floating-registration{position:fixed;left:22px;bottom:22px;z-index:950;display:inline-flex;align-items:center;justify-content:center;min-height:54px;padding:0 24px;border-radius:999px;background:var(--primary);color:#fff;font-weight:900;box-shadow:0 16px 40px rgba(255,107,22,.35);transition:.2s}.floating-registration:hover{transform:translateY(-3px)}.floating-registration.is-hidden{display:none}@media(max-width:680px){.floating-registration{left:14px;right:14px;bottom:14px}}
+
+
+/* V15 Mobile — חוויית טלפון מלאה */
+@media (max-width: 760px){
+  :root{--header-h:68px;--radius:20px;--radius-sm:14px}
+  html{scroll-padding-top:78px}
+  body{font-size:15px}
+  .container{width:min(100% - 24px,var(--container))}
+  .site-header{height:var(--header-h)}
+  .header-inner{gap:10px}
+  .brand{min-width:0;gap:9px}
+  .brand-mark{width:42px;height:42px;border-radius:14px;flex:0 0 42px}
+  .brand-copy{min-width:0;max-width:180px}
+  .brand-copy strong,.brand-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .brand-copy strong{font-size:13px}.brand-copy small{font-size:10px}
+  .header-actions{gap:7px}
+  .header-actions .button{min-height:42px;padding-inline:12px;font-size:12px}
+  .icon-button{width:42px;height:42px;flex:0 0 42px}
+
+  .hero{min-height:auto;padding:28px 0 34px}
+  .hero-grid{display:flex;flex-direction:column;gap:24px}
+  .hero-copy{order:1;text-align:center;align-items:center}
+  .hero-copy .eyebrow{justify-content:center}
+  .hero-copy h1{font-size:clamp(42px,13vw,62px);line-height:.98;margin:14px 0}
+  .hero-copy>p{font-size:16px;max-width:34ch;margin-inline:auto}
+  .hero-actions{display:grid;grid-template-columns:1fr;gap:10px;width:100%}
+  .hero-actions .button{width:100%;min-height:52px}
+  .hero-social-proof{justify-content:center;flex-wrap:wrap}
+  .hero-visual{order:2;min-height:370px;width:100%}
+  .hero-card-frame{width:min(100%,390px);margin-inline:auto;padding:10px;border-radius:30px;transform:none}
+  .hero-media{border-radius:23px;min-height:335px}
+  .hero-slide img,.hero-slide video{object-position:center}
+  .sticker{transform:scale(.88)}
+  .stats-section{margin-top:0}
+  .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .stat-card{min-height:88px;padding:13px;border-radius:18px}
+  .stat-card strong{font-size:24px}
+
+  .section{padding:58px 0}
+  .section-heading{margin-bottom:26px}
+  .section-heading.split-heading{align-items:flex-start;gap:16px;flex-direction:column}
+  .section-heading h2,.story-copy h2,.contact-copy h2{font-size:clamp(34px,10vw,46px);line-height:1.08}
+  .section-heading p{font-size:14px}
+  .days-grid,.videos-grid,.testimonials-grid,.contact-grid,.story-grid{grid-template-columns:1fr}
+  .day-card,.testimonial-card,.contact-card{border-radius:20px}
+  .day-card-cover{aspect-ratio:16/10}
+  .day-card-body{padding:18px}
+  .latest-card{grid-template-columns:1fr}
+  .latest-media{min-height:230px}
+  .latest-content{padding:22px}
+  .latest-content h3{font-size:29px}
+  .story-photo{min-height:340px;border-radius:26px}
+  .story-features{grid-template-columns:1fr}
+  .story-badge{width:98px;height:98px;right:auto;left:-8px;bottom:-16px}
+  .player-card{grid-template-columns:1fr;padding:22px 16px;text-align:center}
+  .record{width:200px;height:200px;margin:auto}
+  .playlist{max-height:280px}
+  .player-main{min-width:0}
+  .player-progress{grid-template-columns:38px 1fr 38px;gap:7px}
+  .player-controls{gap:9px}
+  .player-controls button{width:48px;height:48px}
+  .player-controls .play-button{width:60px;height:60px}
+  .volume-control{width:100%}
+  .updates-card{padding:24px 18px}
+  .updates-form{grid-template-columns:1fr}
+  .updates-form .button{width:100%;min-height:50px}
+  .contact-form{padding:22px 16px}
+  .contact-form .field-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr;gap:26px}
+  .site-footer{padding-bottom:92px}
+
+  .floating-registration{
+    left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));
+    min-height:54px;padding:0 18px;border-radius:16px;
+    box-shadow:0 14px 35px rgba(255,107,22,.34)
+  }
+
+  .day-hero{min-height:420px}
+  .day-hero-content{padding-top:70px;text-align:center}
+  .day-hero h1{font-size:clamp(40px,12vw,58px)}
+  .day-meta,.day-actions{justify-content:center}
+  .day-actions{display:grid;width:100%;grid-template-columns:1fr;gap:10px}
+  .day-actions .button{width:100%}
+  .day-gallery-tools{width:100%;display:flex;gap:7px;overflow:auto;padding-bottom:4px;scrollbar-width:none}
+  .day-gallery-tools::-webkit-scrollbar{display:none}
+  .day-gallery-tools .chip{white-space:nowrap;flex:0 0 auto}
+  .selection-bar{align-items:stretch;flex-direction:column;padding:14px}
+  .selection-bar>div:last-child{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .selection-bar .icon-button{grid-column:1/-1;width:100%}
+  .masonry-grid{columns:2;column-gap:8px}
+  .media-tile{margin-bottom:8px;border-radius:14px}
+  .media-tile-actions{padding:10px;font-size:11px}
+  .media-tile-actions strong{max-width:90px}
+  .lightbox{padding:0}
+  .lightbox-shell{width:100vw;height:100dvh;border-radius:0}
+  .lightbox-stage{height:calc(100dvh - 86px)}
+  .lightbox-footer{padding:11px 13px;min-width:0}
+  .lightbox-footer>div:first-child{min-width:0}
+  .lightbox-footer strong,.lightbox-footer small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  input,select,textarea{font-size:16px!important}
+  .button{touch-action:manipulation}
+}
+@media (max-width: 420px){
+  .container{width:calc(100% - 18px)}
+  .header-actions .button{display:none}
+  .brand-copy{max-width:160px}
+  .hero-copy h1{font-size:43px}
+  .hero-visual{min-height:330px}
+  .hero-media{min-height:300px}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .stat-card{padding:11px}
+  .stat-icon{width:38px;height:38px}
+  .stat-card strong{font-size:21px}
+  .section{padding:48px 0}
+  .masonry-grid{columns:1}
+  .record{width:180px;height:180px}
+}
+@media (hover:none) and (pointer:coarse){
+  .media-tile-overlay,.media-tile-actions{opacity:1;transform:none}
+  .hero-slide-nav{opacity:1}
+  button,a{min-height:44px}
+}
