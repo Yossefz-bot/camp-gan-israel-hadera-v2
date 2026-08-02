@@ -474,3 +474,156 @@ img,video,iframe,svg,canvas{
     max-height:calc(100dvh - 100px)!important;
   }
 }
+
+
+/* =========================================================
+   V15.7 FINAL — גלריה ציבורית 16:9 + סרטון סיכום נפרד
+   ========================================================= */
+
+/* סרטון הסיכום יושב למעלה ובנפרד */
+.day-video-section{
+  padding-top:72px;
+  padding-bottom:52px;
+  background:linear-gradient(180deg,
+    color-mix(in srgb,var(--surface-2) 58%,var(--bg)),
+    var(--bg));
+}
+.day-video-section .section-heading{
+  margin-bottom:26px;
+}
+.day-video-section .section-heading p{
+  margin:0;
+  color:var(--muted);
+}
+.day-video-wrap{
+  width:min(1040px,100%)!important;
+  aspect-ratio:16/9!important;
+  height:auto!important;
+  max-height:none!important;
+  margin-inline:auto;
+  border-radius:26px;
+  overflow:hidden;
+  background:#050b14;
+  box-shadow:var(--shadow-lg);
+}
+.day-video-wrap iframe,
+.day-video-wrap video{
+  display:block;
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  border:0;
+  background:#000;
+}
+
+/* הגלריה עצמה — Grid רגיל ולא Masonry */
+.masonry-grid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:14px!important;
+  columns:auto!important;
+  column-gap:0!important;
+  width:100%;
+}
+
+/* כל תמונה/סרטון מוצגים בתוך משבצת 16:9 */
+.media-tile{
+  width:100%;
+  aspect-ratio:16/9!important;
+  min-width:0;
+  margin:0!important;
+  break-inside:auto!important;
+  border-radius:17px;
+  overflow:hidden;
+  background:#091a2e;
+  position:relative;
+}
+.media-tile img,
+.media-tile video{
+  display:block;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  background:#091a2e;
+  transition:transform .35s;
+}
+.media-tile:hover img,
+.media-tile:hover video{
+  transform:scale(1.025);
+}
+
+/* שכבת הכותרת נשארת עדינה וברורה */
+.media-tile-overlay{
+  opacity:1!important;
+  background:linear-gradient(transparent 58%,rgba(5,14,27,.78))!important;
+}
+.media-tile-actions{
+  opacity:1!important;
+  transform:none!important;
+}
+
+/* שלדי טעינה באותו יחס */
+.masonry-skeleton,
+.masonry-skeleton.tall,
+.masonry-skeleton.wide{
+  width:100%;
+  height:auto!important;
+  aspect-ratio:16/9;
+  margin:0!important;
+  border-radius:17px;
+}
+
+/* טאבלט */
+@media(max-width:1050px){
+  .masonry-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
+
+/* טלפון */
+@media(max-width:720px){
+  .day-video-section{
+    padding-top:48px;
+    padding-bottom:34px;
+  }
+  .day-video-wrap{
+    border-radius:18px;
+  }
+  .masonry-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:9px!important;
+  }
+  .media-tile{
+    border-radius:13px;
+  }
+  .media-tile-actions{
+    left:7px;
+    right:7px;
+    bottom:7px;
+  }
+  .media-tile-actions strong{
+    font-size:10px;
+    max-width:calc(100% - 42px);
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+}
+
+/* טלפונים צרים במיוחד */
+@media(max-width:360px){
+  .masonry-grid{
+    grid-template-columns:1fr!important;
+  }
+}
+
+/* Lightbox נשאר בגודל מלא ומציג תמונה שלמה */
+.lightbox-stage img,
+.lightbox-stage video{
+  object-fit:contain!important;
+  max-width:100%!important;
+  max-height:100%!important;
+}

@@ -1,5 +1,5 @@
 // Gallery stable build v13.2.0
-const state={slug:'',day:null,media:[],visible:[],nextOffset:0,kind:'all',favorites:new Set(JSON.parse(localStorage.getItem('camp-favorites')||'[]')),lightboxIndex:0};
+const state={slug:'',day:null,media:[],visible:[],nextOffset:0,kind:'all',favorites:new Set(JSON.parse(localStorage.getItem('camp-favorites')||'[]')),lightboxIndex:0,summaryVideoId:null,summaryVideoUrl:''};
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const escapeHtml=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
 const formatNumber=v=>new Intl.NumberFormat('he-IL').format(Number(v||0));
@@ -11,23 +11,73 @@ function updateCounts(){setText('#favorites-count',state.favorites.size)}
 function formatDate(value){if(!value)return'';const d=new Date(`${value}T12:00:00`);return Number.isNaN(d.getTime())?value:new Intl.DateTimeFormat('he-IL',{day:'numeric',month:'long',year:'numeric'}).format(d)}
 function videoEmbed(src,aspect='landscape'){
   const wrapClass=aspect==='portrait'?'portrait':aspect==='square'?'square':'';
-  const youtube=src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);const vimeo=src.match(/vimeo\.com\/(\d+)/);
-  if(youtube)return `<div class="day-video-wrap ${wrapClass}"><iframe src="https://www.youtube-nocookie.com/embed/${youtube[1]}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="סרטון היום"></iframe></div>`;
-  if(vimeo)return `<div class="day-video-wrap ${wrapClass}"><iframe src="https://player.vimeo.com/video/${vimeo[1]}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="סרטון היום"></iframe></div>`;
-  return `<div class="day-video-wrap ${wrapClass}"><video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video></div>`;
+  const youtube=String(src||'').match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  const vimeo=String(src||'').match(/vimeo\.com\/(\d+)/);
+  if(youtube)return `<iframe src="https://www.youtube-nocookie.com/embed/${youtube[1]}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="סרטון הסיכום"></iframe>`;
+  if(vimeo)return `<iframe src="https://player.vimeo.com/video/${vimeo[1]}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="סרטון הסיכום"></iframe>`;
+  return `<video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video>`;
+}
+function renderSummaryVideo(src,aspect='landscape'){
+  const section=$('#day-video-section'),wrap=$('#day-video-wrap');
+  if(!section||!wrap||!src)return;
+  section.classList.remove('is-hidden');
+  wrap.className=`day-video-wrap ${aspect==='portrait'?'portrait':aspect==='square'?'square':''}`;
+  wrap.innerHTML=videoEmbed(src,aspect);
+  state.summaryVideoUrl=String(src);
 }
 function renderDay(day,total){
-  state.day=day;document.title=`${day.title} | קעמפ גן ישראל חדרה`;setText('#day-title',day.title);setText('#day-label',day.label||'יום בקעמפ');setText('#day-date',day.hebrew_date||formatDate(day.date));setText('#day-count',`${formatNumber(total)} פריטים`);setText('#day-description',day.description||'כל הרגעים, החוויות והחיוכים של היום.');
+  state.day=day;
+  document.title=`${day.title} | קעמפ גן ישראל חדרה`;
+  setText('#day-title',day.title);
+  setText('#day-label',day.label||'יום בקעמפ');
+  setText('#day-date',day.hebrew_date||formatDate(day.date));
+  setText('#day-count',`${formatNumber(total)} פריטים`);
+  setText('#day-description',day.description||'כל הרגעים, החוויות והחיוכים של היום.');
   if(day.cover_url&&$('#day-cover'))$('#day-cover').style.backgroundImage=`url("${day.cover_url.replace(/"/g,'%22')}")`;
-  if(day.video_src){const section=$('#day-video-section'),wrap=$('#day-video-wrap');if(section)section.classList.remove('is-hidden');if(wrap)wrap.outerHTML=videoEmbed(day.video_src,day.video_aspect)}
-  if(day.story){const section=$('#day-story-section');if(section)section.classList.remove('is-hidden');setText('#day-story',day.story)}
+  if(day.video_src)renderSummaryVideo(day.video_src,day.video_aspect||'landscape');
+  if(day.story){
+    const section=$('#day-story-section');
+    if(section)section.classList.remove('is-hidden');
+    setText('#day-story',day.story);
+  }
 }
+function normalizeMediaUrl(value){
+  try{return new URL(String(value||''),location.origin).href}catch{return String(value||'')}
+}
+function isSummaryVideo(item){
+  if(!item||item.kind!=='video')return false;
+  const title=String(item.title||item.original_name||'');
+  const category=String(item.category||'').toLowerCase();
+  const itemUrl=normalizeMediaUrl(item.url);
+  const summaryUrl=normalizeMediaUrl(state.summaryVideoUrl);
+  if(summaryUrl&&itemUrl===summaryUrl)return true;
+  if(['summary','camp-summary','homepage-summary','סיכום','סרטון סיכום'].includes(category))return true;
+  return /סרטון\s*סיכום|סיכום\s*הקעמפ|camp\s*summary/i.test(title);
+}
+function promoteSummaryVideoFromMedia(){
+  if(state.summaryVideoUrl)return;
+  const summary=state.media.find(isSummaryVideo);
+  if(!summary)return;
+  state.summaryVideoId=Number(summary.id);
+  renderSummaryVideo(summary.url,'landscape');
+}
+function galleryMedia(){
+  return state.media.filter(item=>Number(item.id)!==Number(state.summaryVideoId)&&!isSummaryVideo(item));
+}
+
 function tile(item,index){
   const fav=state.favorites.has(item.id);const title=item.title||item.original_name||'רגע מהקעמפ';
   const media=item.kind==='video'?`<video src="${item.url}" muted preload="metadata" playsinline></video>`:`<img src="${item.url}" alt="${escapeHtml(item.alt_text||title)}" loading="lazy">`;
   return `<article class="media-tile ${item.kind==='video'?'video-tile':''} ${fav?'favorite':''}" data-id="${item.id}" data-index="${index}">${media}<div class="media-tile-overlay"></div><div class="media-tile-actions"><strong>${escapeHtml(title)}</strong><span class="media-tile-buttons"><button class="favorite-button" aria-label="מועדפים">♥</button></span></div></article>`;
 }
-function applyFilter(){state.visible=state.kind==='all'?state.media:state.media.filter(i=>i.kind===state.kind);const grid=$('#media-grid'),empty=$('#media-empty');if(grid)grid.innerHTML=state.visible.map(tile).join('');if(empty)empty.classList.toggle('is-hidden',state.visible.length>0);bindTiles();}
+function applyFilter(){
+  const source=galleryMedia();
+  state.visible=state.kind==='all'?source:source.filter(i=>i.kind===state.kind);
+  const grid=$('#media-grid'),empty=$('#media-empty');
+  if(grid)grid.innerHTML=state.visible.map(tile).join('');
+  if(empty)empty.classList.toggle('is-hidden',state.visible.length>0);
+  bindTiles();
+}
 function bindTiles(){
   $$('.media-tile').forEach(node=>{
     const id=Number(node.dataset.id),index=Number(node.dataset.index);
@@ -47,13 +97,13 @@ function initLightbox(){
 }
 async function loadMedia(reset=false){
   if(reset){state.media=[];state.nextOffset=0;const grid=$('#media-grid');if(grid)grid.innerHTML='<div class="masonry-skeleton"></div><div class="masonry-skeleton tall"></div><div class="masonry-skeleton"></div>'}
-  const offset=state.nextOffset??0;const data=await fetchJson(`/api/day?slug=${encodeURIComponent(state.slug)}&offset=${offset}&limit=48`);if(reset)renderDay(data.day,data.total);state.media.push(...data.media);state.nextOffset=data.next_offset;applyFilter();const loadMore=$('#load-more');if(loadMore)loadMore.classList.toggle('is-hidden',data.next_offset===null);
+  const offset=state.nextOffset??0;const data=await fetchJson(`/api/day?slug=${encodeURIComponent(state.slug)}&offset=${offset}&limit=48`);if(reset)renderDay(data.day,data.total);state.media.push(...data.media);state.nextOffset=data.next_offset;promoteSummaryVideoFromMedia();applyFilter();const loadMore=$('#load-more');if(loadMore)loadMore.classList.toggle('is-hidden',data.next_offset===null);
 }
 function initControls(){
   $$('.day-gallery-tools [data-kind]').forEach(btn=>btn.addEventListener('click',()=>{$$('.day-gallery-tools [data-kind]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');state.kind=btn.dataset.kind;applyFilter()}));
   const loadMore=$('#load-more'),favoritesToggle=$('#favorites-toggle'),shareDay=$('#share-day');
   if(loadMore)loadMore.onclick=()=>loadMedia(false).catch(e=>toast(e.message,'error'));
-  if(favoritesToggle)favoritesToggle.onclick=()=>{state.kind='all';state.visible=state.media.filter(i=>state.favorites.has(i.id));const grid=$('#media-grid'),empty=$('#media-empty');if(grid)grid.innerHTML=state.visible.map(tile).join('');if(empty)empty.classList.toggle('is-hidden',state.visible.length>0);bindTiles();toast(state.visible.length?`מוצגות ${state.visible.length} תמונות מועדפות`:'עדיין לא סימנת מועדפים',state.visible.length?'success':'error')};
+  if(favoritesToggle)favoritesToggle.onclick=()=>{state.kind='all';state.visible=galleryMedia().filter(i=>state.favorites.has(i.id));const grid=$('#media-grid'),empty=$('#media-empty');if(grid)grid.innerHTML=state.visible.map(tile).join('');if(empty)empty.classList.toggle('is-hidden',state.visible.length>0);bindTiles();toast(state.visible.length?`מוצגות ${state.visible.length} תמונות מועדפות`:'עדיין לא סימנת מועדפים',state.visible.length?'success':'error')};
   if(shareDay)shareDay.onclick=async()=>{const data={title:state.day?.title||document.title,text:state.day?.description||'',url:location.href};try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(location.href);toast('הקישור הועתק')}}catch{}};
 }
 function initTheme(){const stored=localStorage.getItem('camp-theme');if(stored==='dark'||(!stored&&matchMedia('(prefers-color-scheme:dark)').matches))document.body.classList.add('dark');const toggle=$('#theme-toggle');if(toggle)toggle.onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('camp-theme',document.body.classList.contains('dark')?'dark':'light')}}
