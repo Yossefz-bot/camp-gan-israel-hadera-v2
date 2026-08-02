@@ -379,7 +379,21 @@ async function track(page='/',event='view') { try{await fetch('/api/track',{meth
 
 function applyTextOverrides(rows){for(const row of rows||[]){try{document.querySelectorAll(row.selector).forEach(node=>{if(node instanceof HTMLInputElement||node instanceof HTMLTextAreaElement){node.placeholder=row.value}else node.textContent=row.value})}catch{}}}
 
-async function boot() {
+
+function stabilizeMobileViewport(){
+  const apply=()=>{
+    const width=document.documentElement.clientWidth;
+    document.documentElement.style.setProperty('--app-width',`${width}px`);
+    document.documentElement.style.maxWidth='100%';
+    document.body.style.maxWidth='100%';
+    document.body.style.overflowX='hidden';
+  };
+  apply();
+  window.addEventListener('resize',apply,{passive:true});
+  window.addEventListener('orientationchange',()=>setTimeout(apply,120),{passive:true});
+}
+
+async function boot() {stabilizeMobileViewport();
   const loader=$('#site-loader');
   const loaderFallback=setTimeout(()=>loader?.classList.add('loaded'),3500);
   setText('#current-year',new Date().getFullYear());

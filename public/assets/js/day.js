@@ -74,5 +74,19 @@ async function track(){try{await fetch('/api/track',{method:'POST',headers:{'con
 
 async function applyRemoteTextOverrides(){try{const data=await fetchJson('/api/texts');for(const row of data.overrides||[]){try{document.querySelectorAll(row.selector).forEach(node=>{if(node instanceof HTMLInputElement||node instanceof HTMLTextAreaElement)node.placeholder=row.value;else node.textContent=row.value})}catch{}}}catch{}}
 
-async function boot(){setText('#current-year',new Date().getFullYear());state.slug=new URLSearchParams(location.search).get('slug')||'';if(!state.slug){location.href='/#galleries';return}initTheme();initLightbox();initControls();protectPublicMedia();updateCounts();try{await loadMedia(true);await applyRemoteTextOverrides();track()}catch(error){toast(error.message,'error');const grid=$('#media-grid'),empty=$('#media-empty');if(grid)grid.innerHTML='';if(empty)empty.classList.remove('is-hidden')}}
+
+function stabilizeMobileViewport(){
+  const apply=()=>{
+    const width=document.documentElement.clientWidth;
+    document.documentElement.style.setProperty('--app-width',`${width}px`);
+    document.documentElement.style.maxWidth='100%';
+    document.body.style.maxWidth='100%';
+    document.body.style.overflowX='hidden';
+  };
+  apply();
+  window.addEventListener('resize',apply,{passive:true});
+  window.addEventListener('orientationchange',()=>setTimeout(apply,120),{passive:true});
+}
+
+async function boot(){stabilizeMobileViewport();setText('#current-year',new Date().getFullYear());state.slug=new URLSearchParams(location.search).get('slug')||'';if(!state.slug){location.href='/#galleries';return}initTheme();initLightbox();initControls();protectPublicMedia();updateCounts();try{await loadMedia(true);await applyRemoteTextOverrides();track()}catch(error){toast(error.message,'error');const grid=$('#media-grid'),empty=$('#media-empty');if(grid)grid.innerHTML='';if(empty)empty.classList.remove('is-hidden')}}
 document.addEventListener('DOMContentLoaded',boot);

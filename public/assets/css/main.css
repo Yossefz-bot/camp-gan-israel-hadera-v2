@@ -180,3 +180,262 @@ a[download],
 .media-tile {
   cursor:zoom-in;
 }
+
+
+/* =========================================================
+   V15.3 Universal Mobile — התאמה יציבה לכל רוחב מסך
+   ========================================================= */
+html{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+  overflow-x:clip;
+}
+body{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow-x:hidden;
+  overflow-x:clip;
+  position:relative;
+}
+body > *,
+main,header,footer,section,aside,
+.container,.hero-grid,.story-grid,.contact-grid,
+.latest-card,.music-player,.updates-card{
+  max-width:100%;
+  min-width:0;
+}
+img,video,iframe,svg,canvas{
+  max-width:100%;
+}
+.site-header,.announcement,.hero,.stats-strip,
+.section,.site-footer,.day-hero,.day-gallery-section{
+  width:100%;
+  overflow-x:hidden;
+  overflow-x:clip;
+}
+.container{
+  box-sizing:border-box;
+  margin-inline:auto;
+}
+
+/* מונע מקישוטים מוחלטים להרחיב את רוחב המסמך */
+.hero-sky,.camp-landscape,.hero-wave,
+.story-section:before,.songs-section:before{
+  max-width:100%;
+  pointer-events:none;
+}
+.hero-visual,.story-visual,.latest-media,
+.album-art,.playlist,.player-main,.updates-form{
+  min-width:0;
+}
+
+/* טלפונים, Fold וגלישה אנכית */
+@media (max-width:900px){
+  html,body{inline-size:100%;max-inline-size:100%}
+  body{margin:0!important;transform:none!important}
+  main{inline-size:100%;margin:0!important;transform:none!important}
+  .container{
+    inline-size:calc(100% - 24px)!important;
+    max-inline-size:100%!important;
+    margin-inline:auto!important;
+    padding-inline:0;
+  }
+  .header-inner{
+    inline-size:100%;
+    min-width:0;
+  }
+  .hero-grid{
+    inline-size:100%;
+    max-inline-size:100%;
+    margin-inline:auto;
+    padding-inline:0;
+  }
+  .hero-copy,.hero-visual{
+    inline-size:100%;
+    max-inline-size:100%;
+    min-width:0;
+  }
+  .hero-card-frame{
+    inline-size:min(390px,calc(100vw - 32px))!important;
+    max-inline-size:calc(100vw - 32px)!important;
+    margin-inline:auto!important;
+    transform:none!important;
+  }
+  .hero-media{
+    inline-size:100%;
+    max-inline-size:100%;
+  }
+  .camp-landscape{
+    left:-16px!important;
+    right:-16px!important;
+    width:auto!important;
+  }
+  .sticker-orange{right:-8px!important}
+  .sticker-yellow{left:-8px!important}
+  .sticker-green{right:-5px!important}
+  .stats-grid,.days-grid,.story-grid,.contact-grid,
+  .footer-grid,.testimonials-grid{
+    inline-size:100%;
+    max-inline-size:100%;
+  }
+  .stat-card,.day-card,.latest-card,.story-photo,
+  .music-player,.updates-card,.contact-form,
+  .testimonial-card{
+    min-width:0;
+    max-width:100%;
+  }
+  .latest-card,.music-player,.updates-card{
+    inline-size:100%;
+  }
+  .music-player{
+    overflow:hidden;
+  }
+  .playlist-item{
+    min-width:0;
+  }
+  .playlist-copy{
+    min-width:0;
+  }
+  .updates-form input,.contact-form input,
+  .contact-form textarea,select{
+    min-width:0;
+    max-width:100%;
+  }
+  .floating-registration{
+    width:auto!important;
+    max-width:calc(100% - 24px)!important;
+  }
+  .toast-region{
+    max-width:calc(100% - 24px);
+  }
+  .toast{
+    width:auto;
+    max-width:100%;
+  }
+}
+
+/* רוחבי טלפון נפוצים: 320–480 */
+@media (max-width:480px){
+  .container{
+    inline-size:calc(100% - 18px)!important;
+  }
+  .site-header{
+    min-width:0;
+  }
+  .brand{
+    flex:1 1 auto;
+    min-width:0;
+  }
+  .brand-copy{
+    max-width:min(48vw,180px)!important;
+  }
+  .header-actions{
+    flex:0 0 auto;
+  }
+  .hero{
+    padding-inline:0!important;
+  }
+  .hero-grid{
+    gap:20px!important;
+  }
+  .hero-copy h1{
+    font-size:clamp(38px,12vw,50px)!important;
+    overflow-wrap:anywhere;
+  }
+  .hero-copy>p{
+    width:100%;
+    max-width:32ch;
+  }
+  .hero-actions,.day-actions{
+    width:100%;
+  }
+  .hero-actions .button,.day-actions .button{
+    width:100%;
+    max-width:100%;
+  }
+  .hero-card-frame{
+    inline-size:calc(100vw - 26px)!important;
+    max-inline-size:calc(100vw - 26px)!important;
+  }
+  .hero-media{
+    min-height:0!important;
+    aspect-ratio:4/5;
+  }
+  .stats-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  .stat-card{
+    grid-template-columns:40px minmax(0,1fr)!important;
+    padding:11px 9px!important;
+  }
+  .stat-card strong,.stat-card small{
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .section-heading h2,.story-copy h2,.contact-copy h2{
+    overflow-wrap:anywhere;
+  }
+  .latest-content,.updates-card,.contact-form{
+    padding-inline:16px!important;
+  }
+  .story-visual{
+    width:calc(100% - 12px)!important;
+    max-width:100%!important;
+  }
+  .story-badge{
+    left:0!important;
+    right:auto!important;
+  }
+  .record{
+    max-width:70vw;
+    max-height:70vw;
+  }
+  .player-controls{
+    width:100%;
+    justify-content:center;
+  }
+  .volume-control{
+    min-width:0;
+  }
+  .footer-bottom{
+    width:100%;
+  }
+  .day-gallery-tools{
+    max-width:100%;
+  }
+  .masonry-grid{
+    width:100%;
+  }
+  .lightbox,.lightbox-shell{
+    width:100%!important;
+    max-width:100%!important;
+  }
+}
+
+/* מכשירים צרים במיוחד */
+@media (max-width:360px){
+  .brand-copy{max-width:135px!important}
+  .hero-copy h1{font-size:36px!important}
+  .stats-grid{grid-template-columns:1fr!important}
+  .stat-card{grid-template-columns:44px minmax(0,1fr)!important}
+  .hero-card-frame{
+    inline-size:calc(100vw - 18px)!important;
+    max-inline-size:calc(100vw - 18px)!important;
+  }
+}
+
+/* טלפון לרוחב */
+@media (max-height:520px) and (orientation:landscape){
+  .hero-grid{padding-block:24px 70px!important}
+  .hero-visual{min-height:300px!important}
+  .hero-card-frame{max-width:300px!important}
+  .site-header{position:relative}
+}
+
+/* מניעת זום אוטומטי ושיפור מגע */
+@media (pointer:coarse){
+  input,textarea,select{font-size:16px!important}
+  button,a{touch-action:manipulation}
+}
