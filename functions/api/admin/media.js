@@ -1,6 +1,8 @@
 import { audit, booleanInt, clean, integer, json, parseJson, statusValue } from '../_shared.js';
 import { requireAdmin } from './_auth.js';
 
+async function runBatches(env, statements, size=50){for(let i=0;i<statements.length;i+=size)await env.DB.batch(statements.slice(i,i+size));}
+
 export async function onRequest({ request, env }) {
   const mutating = request.method !== 'GET';
   const auth = await requireAdmin(request, env, { csrf: mutating });
@@ -34,16 +36,30 @@ export async function onRequest({ request, env }) {
     if (request.method === 'PATCH') {
       if (body.action === 'reorder' && Array.isArray(body.ids)) {
         const statements = body.ids.slice(0, 1000).map((id, index) => env.DB.prepare('UPDATE media SET sort_order=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(index, integer(id)));
-        if (statements.length) await env.DB.batch(statements);
+        if (statements.length) await runBatches(env, statements);
         await audit(env, 'reorder_media', 'media', '', `${statements.length} items`);
         return json({ ok: true });
       }
       if (body.action === 'bulk_status' && Array.isArray(body.ids)) {
         const status = statusValue(body.status, ['draft','published','archived'], 'published');
         const statements = body.ids.slice(0, 1000).map(id => env.DB.prepare('UPDATE media SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(status, integer(id)));
-        if (statements.length) await env.DB.batch(statements);
+        if (statements.length) await runBatches(env, statements);
         await audit(env, 'bulk_media_status', 'media', '', `${status}:${statements.length}`);
         return json({ ok: true });
+      }
+      if (body.action === 'bulk_day' && Array.isArray(body.ids)) {
+        const dayId = integer(body.day_id) || null;
+        const statements = body.ids.slice(0,1000).map(id=>env.DB.prepare('UPDATE media SET day_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(dayId,integer(id)));
+        if(statements.length)await runBatches(env,statements);
+        await audit(env,'bulk_media_day','media','',`${dayId||'none'}:${statements.length}`);
+        return json({ok:true,updated:statements.length});
+      }
+      if (body.action === 'bulk_category' && Array.isArray(body.ids)) {
+        const category=clean(body.category,60);
+        const statements=body.ids.slice(0,1000).map(id=>env.DB.prepare('UPDATE media SET category=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(category,integer(id)));
+        if(statements.length)await runBatches(env,statements);
+        await audit(env,'bulk_media_category','media','',`${category}:${statements.length}`);
+        return json({ok:true,updated:statements.length});
       }
       if (body.action === 'set_cover') {
         const id = integer(body.id);
@@ -94,13 +110,15 @@ export async function onRequest({ request, env }) {
       const keys = [...new Set(records.map(row => row.object_key).filter(Boolean))];
       const settingKeys = "'hero_image_key','hero_video_key','hero_video_poster_key','story_image_key','story_video_key','story_video_poster_key','record_center_image_key'";
 
-      for (let index = 0; index < keys.length; index += 60) {
-        const chunk = keys.slice(index,index+60), placeholders = chunk.map(() => '?').join(',');
-        await env.DB.batch([
+      for (let index = 0; index < keys.length; index += 40) {
+        const chunk = keys.slice(index,index+40), placeholders = chunk.map(() => '?').join(',');
+        const cleanup=[
           env.DB.prepare(`UPDATE days SET cover_key='',updated_at=CURRENT_TIMESTAMP WHERE cover_key IN (${placeholders})`).bind(...chunk),
-          env.DB.prepare(`DELETE FROM homepage_slides WHERE object_key IN (${placeholders}) OR poster_key IN (${placeholders})`).bind(...chunk,...chunk),
+          env.DB.prepare(`DELETE FROM homepage_slides WHERE object_key IN (${placeholders})`).bind(...chunk),
+          env.DB.prepare(`DELETE FROM homepage_slides WHERE poster_key IN (${placeholders})`).bind(...chunk),
           env.DB.prepare(`UPDATE settings SET value='',updated_at=CURRENT_TIMESTAMP WHERE key IN (${settingKeys}) AND value IN (${placeholders})`).bind(...chunk)
-        ]);
+        ];
+        await runBatches(env,cleanup,4);
       }
       for (let index = 0; index < existingIds.length; index += 80) {
         const chunk = existingIds.slice(index,index+80), placeholders = chunk.map(() => '?').join(',');
