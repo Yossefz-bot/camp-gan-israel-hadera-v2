@@ -2,12 +2,29 @@ import { audit, clean, integer, isEmail, json, parseJson, statusValue } from '..
 import { emailReady, emailShell, sendEmail, textToEmailHtml } from '../_email.js';
 import { requireAdmin } from './_auth.js';
 
+async function ensureContactReplies(env){
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS contact_replies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id INTEGER NOT NULL,
+    to_email TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    provider_id TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'sent' CHECK(status IN ('sent','failed')),
+    error TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(contact_id) REFERENCES contact_messages(id) ON DELETE CASCADE
+  )`).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_contact_replies_contact ON contact_replies(contact_id,created_at,id)').run();
+}
+
 export async function onRequest({request,env}){
   const mutating=request.method!=='GET';
   const auth=await requireAdmin(request,env,{csrf:mutating});
   if(auth.response)return auth.response;
   if(!env.DB)return json({error:'db_binding_missing'},503);
   try{
+    await ensureContactReplies(env);
     if(request.method==='GET'){
       const url=new URL(request.url),status=clean(url.searchParams.get('status'),20),search=clean(url.searchParams.get('search'),120),limit=Math.min(300,Math.max(1,integer(url.searchParams.get('limit'),100))),offset=Math.max(0,integer(url.searchParams.get('offset'),0));
       const filters=['1=1'],bindings=[];
@@ -35,12 +52,8 @@ export async function onRequest({request,env}){
       const bodyHtml=`<p style="margin:0 0 18px">שלום ${clean(current.name,120)||'רב'},</p><div>${textToEmailHtml(message)}</div><hr style="border:0;border-top:1px solid #edf0f5;margin:28px 0"><div style="font-size:13px;color:#718096"><strong>הפנייה המקורית:</strong><br>${textToEmailHtml(current.message)}</div>`;
       const html=emailShell({title:subject,bodyHtml,footerHtml:'נשלח בתגובה לפנייה שהועברה דרך אתר קעמפ גן ישראל חדרה.'});
       let providerId='',sendStatus='sent',errorMessage='';
-      try{
-        const result=await sendEmail(env,{to,subject,html,text:message,replyTo:env.EMAIL_REPLY_TO},`contact-reply-${id}-${Date.now()}`);
-        providerId=clean(result.id,200);
-      }catch(error){sendStatus='failed';errorMessage=clean(error.message,700)}
-      await env.DB.prepare(`INSERT INTO contact_replies(contact_id,to_email,subject,body,provider_id,status,error,created_at)
-        VALUES(?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`).bind(id,to,subject,message,providerId,sendStatus,errorMessage).run();
+      try{const result=await sendEmail(env,{to,subject,html,text:message,replyTo:env.EMAIL_REPLY_TO},`contact-reply-${id}-${Date.now()}`);providerId=clean(result.id,200)}catch(error){sendStatus='failed';errorMessage=clean(error.message,700)}
+      await env.DB.prepare(`INSERT INTO contact_replies(contact_id,to_email,subject,body,provider_id,status,error,created_at) VALUES(?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`).bind(id,to,subject,message,providerId,sendStatus,errorMessage).run();
       if(sendStatus==='failed')return json({error:'email_send_failed',message:errorMessage||'שליחת המייל נכשלה.'},502);
       await env.DB.prepare("UPDATE contact_messages SET status='handled',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
       await audit(env,'reply_contact_email','contact',String(id),to);
