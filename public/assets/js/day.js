@@ -63,5 +63,8 @@ function initControls(){
 }
 function initTheme(){const stored=localStorage.getItem('camp-theme');if(stored==='dark'||(!stored&&matchMedia('(prefers-color-scheme:dark)').matches))document.body.classList.add('dark');const toggle=$('#theme-toggle');if(toggle)toggle.onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('camp-theme',document.body.classList.contains('dark')?'dark':'light')}}
 async function track(){try{await fetch('/api/track',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({page:`day/${state.slug}`,event:'view'}),keepalive:true})}catch{}}
-async function boot(){setText('#current-year',new Date().getFullYear());state.slug=new URLSearchParams(location.search).get('slug')||'';if(!state.slug){location.href='/#galleries';return}initTheme();initLightbox();initControls();updateCounts();try{await loadMedia(true);track()}catch(error){toast(error.message,'error');const grid=$('#media-grid'),empty=$('#media-empty');if(grid)grid.innerHTML='';if(empty)empty.classList.remove('is-hidden')}}
+
+async function applyRemoteTextOverrides(){try{const data=await fetchJson('/api/texts');for(const row of data.overrides||[]){try{document.querySelectorAll(row.selector).forEach(node=>{if(node instanceof HTMLInputElement||node instanceof HTMLTextAreaElement)node.placeholder=row.value;else node.textContent=row.value})}catch{}}}catch{}}
+
+async function boot(){setText('#current-year',new Date().getFullYear());state.slug=new URLSearchParams(location.search).get('slug')||'';if(!state.slug){location.href='/#galleries';return}initTheme();initLightbox();initControls();updateCounts();try{await loadMedia(true);await applyRemoteTextOverrides();track()}catch(error){toast(error.message,'error');const grid=$('#media-grid'),empty=$('#media-empty');if(grid)grid.innerHTML='';if(empty)empty.classList.remove('is-hidden')}}
 document.addEventListener('DOMContentLoaded',boot);

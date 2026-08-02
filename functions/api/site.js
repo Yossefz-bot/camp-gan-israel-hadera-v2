@@ -23,7 +23,7 @@ export async function onRequestGet({ env }) {
   if (!env.DB) return json(fallback, 200, { 'cache-control': 'public,max-age=15' });
 
   try {
-    const [settings, daysResult, announcement, songsResult, testimonialsResult, slidesResult, totals] = await Promise.all([
+    const [settings, daysResult, announcement, songsResult, testimonialsResult, slidesResult, textOverridesResult, totals] = await Promise.all([
       loadSettings(env),
       env.DB.prepare(`
         SELECT d.*,
@@ -45,6 +45,7 @@ export async function onRequestGet({ env }) {
       env.DB.prepare("SELECT * FROM media WHERE kind='audio' AND status='published' ORDER BY sort_order,id").all(),
       env.DB.prepare("SELECT id,name,relation,rating,message FROM testimonials WHERE status='approved' ORDER BY sort_order,id DESC LIMIT 24").all(),
       env.DB.prepare("SELECT * FROM homepage_slides WHERE status='published' ORDER BY sort_order,id").all().catch(() => ({ results: [] })),
+      env.DB.prepare("SELECT selector,value FROM text_overrides ORDER BY selector").all().catch(()=>({results:[]})),
       env.DB.prepare(`SELECT
         (SELECT COUNT(*) FROM days WHERE status='published') AS days,
         (SELECT COUNT(*) FROM media WHERE kind='image' AND status='published') AS photos,
@@ -60,6 +61,7 @@ export async function onRequestGet({ env }) {
       announcement,
       songs: (songsResult.results || []).map(decorateMedia),
       testimonials: testimonialsResult.results || [],
+      text_overrides: textOverridesResult.results||[],
       hero_slides: (slidesResult.results || []).map(item => ({ ...item, url: mediaUrl(item.object_key), poster_url: mediaUrl(item.poster_key) })),
       totals: totals || { days: 0, photos: 0, videos: 0, songs: 0 },
       setup: { required: !env.MEDIA, db_binding: true, r2_binding: Boolean(env.MEDIA), database_ready: true }

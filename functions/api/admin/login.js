@@ -8,7 +8,7 @@ export async function onRequestPost({ request, env }) {
   const limit = await enforceRateLimit({ env, request, action: 'admin-login', limit: 10, windowSeconds: 900 });
   if (!limit.allowed) return json({ error: 'too_many_attempts', message: 'בוצעו יותר מדי ניסיונות. נסה שוב בעוד כמה דקות.' }, 429);
   const body = await parseJson(request);
-  if (!passwordMatches(body.password, env)) {
+  if (!(await passwordMatches(body.password, env))) {
     await new Promise(resolve => setTimeout(resolve, 250));
     return json({ error: 'invalid_credentials', message: 'הסיסמה אינה נכונה.' }, 401);
   }

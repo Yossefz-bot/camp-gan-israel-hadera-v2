@@ -53,10 +53,27 @@ export function secretsReady(env) {
   return clean(env.ADMIN_PASSWORD, 500).length >= 8 && clean(env.SESSION_SECRET, 1000).length >= 32;
 }
 
-export function passwordMatches(password, env) {
+async function pbkdf2Hex(password,salt){
+  const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:new TextEncoder().encode(salt),iterations:120000},material,256);
+  return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+export async function passwordMatches(password, env) {
   if (!secretsReady(env)) return false;
+  if(env.DB){
+    try{
+      const rows=await env.DB.prepare("SELECT key,value FROM settings WHERE key IN ('admin_password_hash','admin_password_salt')").all();
+      const values=Object.fromEntries((rows.results||[]).map(r=>[r.key,r.value]));
+      if(values.admin_password_hash&&values.admin_password_salt){
+        const candidate=await pbkdf2Hex(clean(password,500),values.admin_password_salt);
+        return constantTimeEqual(candidate,values.admin_password_hash);
+      }
+    }catch{}
+  }
   return constantTimeEqual(clean(password, 500), clean(env.ADMIN_PASSWORD, 500));
 }
+export async function makePasswordHash(password,salt){return pbkdf2Hex(clean(password,500),salt)}
+
 
 export async function createSession(env) {
   if (!secretsReady(env)) throw new Error('admin_secrets_missing');

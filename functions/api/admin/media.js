@@ -16,13 +16,16 @@ export async function onRequest({ request, env }) {
       const offset = Math.max(0, integer(url.searchParams.get('offset'), 0));
       const filters = ['1=1'];
       const bindings = [];
-      const dayId = integer(url.searchParams.get('day_id'));
+      const rawDayId=url.searchParams.get('day_id');
+      const dayId = integer(rawDayId);
       const kind = clean(url.searchParams.get('kind'), 20);
       const status = clean(url.searchParams.get('status'), 20);
       const search = clean(url.searchParams.get('search'), 120);
-      if (dayId) { filters.push('m.day_id=?'); bindings.push(dayId); }
+      const category=clean(url.searchParams.get('category'),60);
+      if(rawDayId==='none') filters.push('m.day_id IS NULL'); else if (dayId) { filters.push('m.day_id=?'); bindings.push(dayId); }
       if (['image','video','audio','document'].includes(kind)) { filters.push('m.kind=?'); bindings.push(kind); }
       if (['draft','published','archived'].includes(status)) { filters.push('m.status=?'); bindings.push(status); }
+      if(category){filters.push('m.category=?');bindings.push(category);}
       if (search) { filters.push('(m.title LIKE ? OR m.original_name LIKE ? OR m.alt_text LIKE ?)'); bindings.push(`%${search}%`, `%${search}%`, `%${search}%`); }
       const where = filters.join(' AND ');
       const [rows, count] = await Promise.all([
@@ -76,7 +79,8 @@ export async function onRequest({ request, env }) {
       const current = await env.DB.prepare('SELECT * FROM media WHERE id=?').bind(id).first();
       if (!current) return json({ error: 'not_found', message: 'הקובץ לא נמצא.' }, 404);
       const dayId = body.day_id === undefined ? current.day_id : (integer(body.day_id) || null);
-      await env.DB.prepare(`UPDATE media SET day_id=?,kind=?,category=?,title=?,alt_text=?,caption=?,status=?,is_featured=?,sort_order=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+      const artworkKey=body.artwork_key===undefined?(current.artwork_key||''):clean(body.artwork_key,1000);
+      await env.DB.prepare(`UPDATE media SET day_id=?,kind=?,category=?,title=?,alt_text=?,caption=?,status=?,is_featured=?,sort_order=?,artwork_key=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
         .bind(
           dayId,
           body.kind===undefined?current.kind:statusValue(body.kind,['image','video','audio','document'],current.kind),
@@ -87,6 +91,7 @@ export async function onRequest({ request, env }) {
           body.status===undefined?current.status:statusValue(body.status,['draft','published','archived'],current.status),
           body.is_featured===undefined?current.is_featured:booleanInt(body.is_featured),
           body.sort_order===undefined?current.sort_order:integer(body.sort_order),
+          artworkKey,
           id
         ).run();
       await audit(env, 'update_media', 'media', String(id), current.original_name);
@@ -116,9 +121,10 @@ export async function onRequest({ request, env }) {
           env.DB.prepare(`UPDATE days SET cover_key='',updated_at=CURRENT_TIMESTAMP WHERE cover_key IN (${placeholders})`).bind(...chunk),
           env.DB.prepare(`DELETE FROM homepage_slides WHERE object_key IN (${placeholders})`).bind(...chunk),
           env.DB.prepare(`DELETE FROM homepage_slides WHERE poster_key IN (${placeholders})`).bind(...chunk),
-          env.DB.prepare(`UPDATE settings SET value='',updated_at=CURRENT_TIMESTAMP WHERE key IN (${settingKeys}) AND value IN (${placeholders})`).bind(...chunk)
+          env.DB.prepare(`UPDATE settings SET value='',updated_at=CURRENT_TIMESTAMP WHERE key IN (${settingKeys}) AND value IN (${placeholders})`).bind(...chunk),
+          env.DB.prepare(`UPDATE media SET artwork_key='',updated_at=CURRENT_TIMESTAMP WHERE artwork_key IN (${placeholders})`).bind(...chunk)
         ];
-        await runBatches(env,cleanup,4);
+        await runBatches(env,cleanup,5);
       }
       for (let index = 0; index < existingIds.length; index += 80) {
         const chunk = existingIds.slice(index,index+80), placeholders = chunk.map(() => '?').join(',');

@@ -162,6 +162,7 @@ function applySettings(settings) {
   renderHomepageMedia('hero', $('#hero-media'), settings);
   renderHomepageMedia('story', $('#story-photo'), settings);
   const recordCenter=$('#record-center');if(recordCenter){recordCenter.innerHTML=settings.record_center_image_key?`<img src="${mediaUrl(settings.record_center_image_key)}" alt="${escapeHtml(settings.camp_name||'קעמפ גן ישראל')}">`:'GI';}
+  const floating=$('#floating-registration');if(floating){const enabled=truthy(settings.floating_registration_enabled)&&settings.registration_button_url;floating.classList.toggle('is-hidden',!enabled);if(enabled)setLink(floating,settings.registration_button_url,settings.floating_registration_text||settings.registration_button_text||'הרשמה לקעמפ');}
   if (settings.logo_key) {
     $$('.brand-mark').forEach(mark => { mark.innerHTML = `<img src="${mediaUrl(settings.logo_key)}" alt="" style="width:100%;height:100%;object-fit:contain;padding:5px">`; });
   }
@@ -268,7 +269,7 @@ function loadTrack(index, autoplay) {
   if (!state.songs.length) return;
   state.currentTrack = (index + state.songs.length) % state.songs.length;
   const song = state.songs[state.currentTrack], audio = $('#audio-player');
-  audio.src = song.url || mediaUrl(song.object_key); setText('#track-title', song.title || song.original_name || `המנון ${state.currentTrack+1}`); setText('#track-subtitle', song.caption || state.settings.camp_name);
+  audio.src = song.url || mediaUrl(song.object_key);const center=$('#record-center');if(center){const art=song.artwork_key||state.settings.record_center_image_key;center.innerHTML=art?`<img src="${mediaUrl(art)}" alt="${escapeHtml(song.title||'המנון')}">`:'GI';} setText('#track-title', song.title || song.original_name || `המנון ${state.currentTrack+1}`); setText('#track-subtitle', song.caption || state.settings.camp_name);
   $$('.playlist-item').forEach((item,i)=>item.classList.toggle('active',i===state.currentTrack));
   if (autoplay) audio.play().catch(()=>{});
 }
@@ -340,11 +341,14 @@ function startCountdown(target) {
 
 async function track(page='/',event='view') { try{await fetch('/api/track',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({page,event}),keepalive:true});}catch{} }
 
+
+function applyTextOverrides(rows){for(const row of rows||[]){try{document.querySelectorAll(row.selector).forEach(node=>{if(node instanceof HTMLInputElement||node instanceof HTMLTextAreaElement){node.placeholder=row.value}else node.textContent=row.value})}catch{}}}
+
 async function boot() {
   setText('#current-year',new Date().getFullYear()); initPlayer(); initForms(); initInteractions();
   try {
     const data=await fetchJson('/api/site');
-    state.heroSlides=data.hero_slides||[];applySettings(data.settings||{});renderAnnouncement(data.announcement);renderStats(data.totals||{});renderLatest(data.latest_day);renderDays(data.days||[]);renderSongs(data.songs||[]);renderTestimonials(data.testimonials||[]);
+    state.heroSlides=data.hero_slides||[];applySettings(data.settings||{});renderAnnouncement(data.announcement);renderStats(data.totals||{});renderLatest(data.latest_day);renderDays(data.days||[]);renderSongs(data.songs||[]);renderTestimonials(data.testimonials||[]);applyTextOverrides(data.text_overrides||[]);
     if(data.setup?.required) console.info('Camp setup required',data.setup);
   } catch(error) { toast('האתר נטען במצב בסיסי. נסו לרענן בעוד רגע.','error'); renderDays([]); }
   finally { $('#site-loader').classList.add('loaded'); track(location.pathname); }
