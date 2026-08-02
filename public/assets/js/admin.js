@@ -48,20 +48,32 @@ function openDayModal(day=null){const form=$('#day-form');form.reset();for(const
 
 function initDayForm(){$('#create-day').onclick=()=>openDayModal();$('#day-form').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,data=Object.fromEntries(new FormData(form)),id=Number(data.id||0);formStatus(form,'שומר...');try{await api('/api/admin/days',{method:id?'PATCH':'POST',body:JSON.stringify({...data,id})});toast(id?'היום עודכן':'היום נוצר');$('#day-modal').close();await loadDays()}catch(error){formStatus(form,error.message,'error')}})}
 
-async function loadMedia(reset=false){if(reset){state.mediaOffset=0;state.media=[];state.mediaSelected.clear()}const p=new URLSearchParams({offset:String(state.mediaOffset),limit:'60'});if($('#media-day-filter').value)p.set('day_id',$('#media-day-filter').value);if($('#media-kind-filter').value)p.set('kind',$('#media-kind-filter').value);if($('#media-status-filter').value)p.set('status',$('#media-status-filter').value);if($('#media-category-filter')?.value)p.set('category',$('#media-category-filter').value);if($('#media-search').value.trim())p.set('search',$('#media-search').value.trim());const data=await api(`/api/admin/media?${p}`);state.media.push(...data.media);state.mediaOffset=state.media.length;state.mediaTotal=data.total;renderMediaFolders();renderMedia();$('#media-more').classList.toggle('is-hidden',state.media.length>=data.total)}
+async function loadMedia(reset=false){
+  if(!state.settings||!Object.keys(state.settings).length){
+    try{
+      const settingsData=await api('/api/admin/settings');
+      state.settings=settingsData.settings||{};
+    }catch{}
+  }
+  if(reset){state.mediaOffset=0;state.media=[];state.mediaSelected.clear()}
+  const p=new URLSearchParams({offset:String(state.mediaOffset),limit:'60'});if($('#media-day-filter').value)p.set('day_id',$('#media-day-filter').value);if($('#media-kind-filter').value)p.set('kind',$('#media-kind-filter').value);if($('#media-status-filter').value)p.set('status',$('#media-status-filter').value);if($('#media-category-filter')?.value)p.set('category',$('#media-category-filter').value);if($('#media-search').value.trim())p.set('search',$('#media-search').value.trim());const data=await api(`/api/admin/media?${p}`);state.media.push(...data.media);state.mediaOffset=state.media.length;state.mediaTotal=data.total;renderMediaFolders();renderMedia();$('#media-more').classList.toggle('is-hidden',state.media.length>=data.total)}
 
 function renderMediaFolders(){const wrap=$('#media-folders');if(!wrap)return;const activeDay=$('#media-day-filter').value,activeKind=$('#media-kind-filter').value,activeCategory=$('#media-category-filter')?.value||'';const folders=[{day:'',kind:'',category:'',icon:'🗂️',title:'הכול'},{day:'none',kind:'',category:'',icon:'📥',title:'ללא גלריה'},{day:'',kind:'image',category:'logo',icon:'🏷️',title:'לוגואים'},{day:'',kind:'audio',category:'',icon:'🎵',title:'המנונים'},{day:'',kind:'',category:'homepage',icon:'🏠',title:'דף הבית'},...state.days.map(d=>({day:String(d.id),kind:'',category:'',icon:'📅',title:d.title}))];wrap.innerHTML=folders.map(f=>{const active=activeDay===f.day&&activeKind===f.kind&&activeCategory===f.category;return `<button type="button" class="media-folder ${active?'active':''}" data-folder-day="${escapeHtml(f.day)}" data-folder-kind="${escapeHtml(f.kind)}" data-folder-category="${escapeHtml(f.category)}"><span>${f.icon}</span><strong>${escapeHtml(f.title)}</strong></button>`}).join('');$$('[data-folder-day]',wrap).forEach(b=>b.onclick=()=>{$('#media-day-filter').value=b.dataset.folderDay;$('#media-kind-filter').value=b.dataset.folderKind;$('#media-category-filter').value=b.dataset.folderCategory;loadMedia(true)})}
 function mediaPreview(item){if(item.kind==='image')return `<img src="${mediaUrl(item.object_key)}" alt="${escapeHtml(item.alt_text||item.title||'')}">`;if(item.kind==='video')return `<video src="${mediaUrl(item.object_key)}" muted preload="metadata"></video>`;return item.kind==='audio'?'🎵':'📄'}
 function updateMediaSelectionBar(){const count=state.mediaSelected.size,allVisible=state.media.length>0&&state.media.every(item=>state.mediaSelected.has(Number(item.id)));setText('#media-selected-count',formatNumber(count));$('#media-selection-actions').classList.toggle('is-hidden',count===0);$('#media-select-all').checked=allVisible;$('#media-select-all').indeterminate=count>0&&!allVisible;$$('[data-media-select]').forEach(input=>{const selected=state.mediaSelected.has(Number(input.dataset.mediaSelect));input.checked=selected;input.closest('.admin-media-card')?.classList.toggle('selected',selected)})}
 function isSummaryVideo(item){
+  if(item.kind!=='video')return false;
+  const configuredKey=String(state.settings?.story_video_key||'').trim();
+  const configuredUrl=String(state.settings?.story_video_url||'').trim();
+  const objectKey=String(item.object_key||'').trim();
+  const itemUrl=mediaUrl(objectKey);
   const category=String(item.category||'').toLowerCase().trim();
-  const title=String(item.title||item.original_name||'');
-  const configuredKey=String(state.settings?.story_video_key||'');
-  return item.kind==='video'&&(
-    configuredKey&&item.object_key===configuredKey||
-    ['summary','camp-summary','homepage-summary','סיכום','סרטון סיכום'].includes(category)||
-    /סיכום(?:\s+הקעמפ)?/i.test(title)
-  );
+  const title=String(item.title||item.original_name||'').trim();
+
+  if(configuredKey&&objectKey===configuredKey)return true;
+  if(configuredUrl&&(configuredUrl===itemUrl||configuredUrl.endsWith(objectKey)))return true;
+  if(['summary','camp-summary','homepage-summary','סיכום','סרטון סיכום'].includes(category))return true;
+  return /סרטון\s*סיכום|סיכום\s*הקעמפ|camp\s*summary/i.test(title);
 }
 function mediaCardTemplate(item){
   const selected=state.mediaSelected.has(Number(item.id));
@@ -81,13 +93,22 @@ function bindMediaCards(){
 }
 function renderMedia(){
   const summaryVideos=state.media.filter(isSummaryVideo);
-  const regularMedia=state.media.filter(item=>!isSummaryVideo(item));
-  const summarySection=$('#summary-video-section'),summaryCard=$('#summary-video-card');
+  const summaryIds=new Set(summaryVideos.map(item=>Number(item.id)));
+  const regularMedia=state.media.filter(item=>!summaryIds.has(Number(item.id)));
+  const summarySection=$('#summary-video-section');
+  const summaryCard=$('#summary-video-card');
+
   if(summarySection&&summaryCard){
-    summarySection.classList.toggle('is-hidden',!summaryVideos.length);
-    summaryCard.innerHTML=summaryVideos.length?summaryVideos.map(item=>mediaCardTemplate(item)).join(''):'';
+    summarySection.classList.toggle('is-hidden',summaryVideos.length===0);
+    summaryCard.innerHTML=summaryVideos.length
+      ? summaryVideos.map(item=>mediaCardTemplate(item)).join('')
+      : '';
   }
-  $('#admin-media-grid').innerHTML=regularMedia.length?regularMedia.map(item=>mediaCardTemplate(item)).join(''):'<div class="admin-empty">לא נמצאו קבצים</div>';
+
+  $('#admin-media-grid').innerHTML=regularMedia.length
+    ? regularMedia.map(item=>mediaCardTemplate(item)).join('')
+    : '<div class="admin-empty">לא נמצאו קבצים</div>';
+
   bindMediaCards();
   updateMediaSelectionBar();
 }
