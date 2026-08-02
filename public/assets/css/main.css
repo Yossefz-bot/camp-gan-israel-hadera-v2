@@ -161,3 +161,22 @@
   .hero-slide-nav{opacity:1}
   button,a{min-height:44px}
 }
+
+
+/* V15.2 — הסרת הורדות מהגלריה הציבורית */
+#download-selected,
+#lightbox-download,
+a[download],
+.media-tile-buttons a {
+  display:none!important;
+}
+.media-tile img,
+.lightbox-stage img {
+  -webkit-user-drag:none;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+}
+.media-tile {
+  cursor:zoom-in;
+}
