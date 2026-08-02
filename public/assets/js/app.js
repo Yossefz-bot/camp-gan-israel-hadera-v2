@@ -305,18 +305,49 @@ function initForms() {
 }
 
 function initInteractions() {
-  const header=$('#site-header'); window.addEventListener('scroll',()=>{header.classList.toggle('scrolled',scrollY>10);$('#back-to-top').classList.toggle('visible',scrollY>650);},{passive:true});
-  $('#back-to-top').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
-  const menu=$('#menu-button'),nav=$('#mobile-nav'); menu.addEventListener('click',()=>{const open=menu.classList.toggle('active');nav.classList.toggle('open',open);menu.setAttribute('aria-expanded',String(open));}); $$('#mobile-nav a').forEach(a=>a.addEventListener('click',()=>{menu.classList.remove('active');nav.classList.remove('open');menu.setAttribute('aria-expanded','false');}));
-  $('#gallery-search').addEventListener('input',event=>{state.query=event.target.value.trim();filterDays();});
-  $$('.filter-chips .chip').forEach(button=>button.addEventListener('click',()=>{$$('.filter-chips .chip').forEach(x=>x.classList.remove('active'));button.classList.add('active');state.filter=button.dataset.filter;filterDays();}));
-  $('#testimonial-open').addEventListener('click',()=>$('#testimonial-modal').showModal());
+  const header=$('#site-header'),backToTop=$('#back-to-top');
+  window.addEventListener('scroll',()=>{
+    header?.classList.toggle('scrolled',scrollY>10);
+    backToTop?.classList.toggle('visible',scrollY>650);
+  },{passive:true});
+  backToTop?.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+
+  const menu=$('#menu-button'),nav=$('#mobile-nav');
+  if(menu&&nav){
+    menu.addEventListener('click',()=>{
+      const open=menu.classList.toggle('active');
+      nav.classList.toggle('open',open);
+      menu.setAttribute('aria-expanded',String(open));
+    });
+    $$('#mobile-nav a').forEach(a=>a.addEventListener('click',()=>{
+      menu.classList.remove('active');
+      nav.classList.remove('open');
+      menu.setAttribute('aria-expanded','false');
+    }));
+  }
+
+  $('#gallery-search')?.addEventListener('input',event=>{state.query=event.target.value.trim();filterDays();});
+  $$('.filter-chips .chip').forEach(button=>button.addEventListener('click',()=>{
+    $$('.filter-chips .chip').forEach(x=>x.classList.remove('active'));
+    button.classList.add('active');
+    state.filter=button.dataset.filter;
+    filterDays();
+  }));
+  $('#testimonial-open')?.addEventListener('click',()=>$('#testimonial-modal')?.showModal());
   $$('[data-close-dialog]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog')?.close()));
-  $('#search-open').addEventListener('click',()=>{renderSearch('');$('#search-modal').showModal();setTimeout(()=>$('#global-search-input').focus(),50);});
-  $('#search-close').addEventListener('click',()=>$('#search-modal').close());
-  $('#global-search-input').addEventListener('input',event=>renderSearch(event.target.value));
-  $('#search-modal').addEventListener('click',event=>{if(event.target===$('#search-modal'))$('#search-modal').close();});
-  initTheme(); initReveals();
+
+  const searchOpen=$('#search-open'),searchModal=$('#search-modal'),searchInput=$('#global-search-input');
+  searchOpen?.addEventListener('click',()=>{
+    renderSearch('');
+    searchModal?.showModal();
+    setTimeout(()=>searchInput?.focus(),50);
+  });
+  $('#search-close')?.addEventListener('click',()=>searchModal?.close());
+  searchInput?.addEventListener('input',event=>renderSearch(event.target.value));
+  searchModal?.addEventListener('click',event=>{if(event.target===searchModal)searchModal.close();});
+
+  initTheme();
+  initReveals();
 }
 
 function renderSearch(query) {
@@ -325,8 +356,12 @@ function renderSearch(query) {
 }
 
 function initTheme() {
-  const stored=localStorage.getItem('camp-theme'); if(stored==='dark'||(!stored&&matchMedia('(prefers-color-scheme:dark)').matches))document.body.classList.add('dark');
-  $('#theme-toggle').addEventListener('click',()=>{document.body.classList.toggle('dark');localStorage.setItem('camp-theme',document.body.classList.contains('dark')?'dark':'light');});
+  const stored=localStorage.getItem('camp-theme');
+  if(stored==='dark'||(!stored&&matchMedia('(prefers-color-scheme:dark)').matches))document.body.classList.add('dark');
+  $('#theme-toggle')?.addEventListener('click',()=>{
+    document.body.classList.toggle('dark');
+    localStorage.setItem('camp-theme',document.body.classList.contains('dark')?'dark':'light');
+  });
 }
 
 function initReveals() {
@@ -345,13 +380,22 @@ async function track(page='/',event='view') { try{await fetch('/api/track',{meth
 function applyTextOverrides(rows){for(const row of rows||[]){try{document.querySelectorAll(row.selector).forEach(node=>{if(node instanceof HTMLInputElement||node instanceof HTMLTextAreaElement){node.placeholder=row.value}else node.textContent=row.value})}catch{}}}
 
 async function boot() {
-  setText('#current-year',new Date().getFullYear()); initPlayer(); initForms(); initInteractions();
+  const loader=$('#site-loader');
+  const loaderFallback=setTimeout(()=>loader?.classList.add('loaded'),3500);
+  setText('#current-year',new Date().getFullYear());
+  try{initPlayer();}catch(error){console.error('initPlayer failed',error);}
+  try{initForms();}catch(error){console.error('initForms failed',error);}
+  try{initInteractions();}catch(error){console.error('initInteractions failed',error);}
   try {
     const data=await fetchJson('/api/site');
     state.heroSlides=data.hero_slides||[];applySettings(data.settings||{});renderAnnouncement(data.announcement);renderStats(data.totals||{});renderLatest(data.latest_day);renderDays(data.days||[]);renderSongs(data.songs||[]);renderTestimonials(data.testimonials||[]);applyTextOverrides(data.text_overrides||[]);
     if(data.setup?.required) console.info('Camp setup required',data.setup);
   } catch(error) { toast('האתר נטען במצב בסיסי. נסו לרענן בעוד רגע.','error'); renderDays([]); }
-  finally { $('#site-loader').classList.add('loaded'); track(location.pathname); }
+  finally {
+    clearTimeout(loaderFallback);
+    loader?.classList.add('loaded');
+    track(location.pathname);
+  }
   if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 
