@@ -243,3 +243,49 @@ html,body.admin-body{
   .admin-media-grid{grid-template-columns:1fr!important}
   .admin-stats{grid-template-columns:1fr!important}
 }
+
+
+/* V15.4 — תצוגת מדיה מלאה בלי גלילה מיותרת */
+.admin-modal-card{
+  max-height:calc(100dvh - 24px)!important;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+.media-preview{
+  width:100%;
+  height:min(42dvh,420px)!important;
+  min-height:180px;
+  max-height:420px;
+  overflow:hidden!important;
+  background:var(--surface-2);
+}
+.media-preview img,
+.media-preview video{
+  display:block;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  object-fit:contain!important;
+  object-position:center!important;
+}
+@media (max-width:760px){
+  .admin-modal-card{
+    height:100dvh!important;
+    max-height:100dvh!important;
+    border-radius:0!important;
+    padding-top:max(14px,env(safe-area-inset-top))!important;
+    padding-bottom:max(14px,env(safe-area-inset-bottom))!important;
+  }
+  .media-preview{
+    height:min(34dvh,300px)!important;
+    min-height:150px;
+    margin-bottom:12px;
+  }
+}
+@media (orientation:landscape) and (max-height:560px){
+  .media-preview{
+    height:42dvh!important;
+    min-height:120px;
+  }
+}

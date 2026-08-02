@@ -439,3 +439,38 @@ img,video,iframe,svg,canvas{
   input,textarea,select{font-size:16px!important}
   button,a{touch-action:manipulation}
 }
+
+
+/* V15.4 — תמונות וסרטונים תמיד נכנסים למסך */
+.lightbox{
+  overflow:hidden!important;
+}
+.lightbox-shell{
+  width:100vw;
+  height:100dvh;
+  max-height:100dvh;
+  overflow:hidden;
+}
+.lightbox-stage{
+  min-height:0;
+  overflow:hidden;
+}
+.lightbox-stage img,
+.lightbox-stage video{
+  width:auto!important;
+  height:auto!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  object-fit:contain!important;
+}
+@media (max-width:760px){
+  .lightbox-stage{
+    height:calc(100dvh - 82px)!important;
+    padding:8px!important;
+  }
+  .lightbox-stage img,
+  .lightbox-stage video{
+    max-width:calc(100vw - 16px)!important;
+    max-height:calc(100dvh - 100px)!important;
+  }
+}
