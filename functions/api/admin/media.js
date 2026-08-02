@@ -16,12 +16,14 @@ export async function onRequest({ request, env }) {
       const offset = Math.max(0, integer(url.searchParams.get('offset'), 0));
       const filters = ['1=1'];
       const bindings = [];
+      const mediaId=integer(url.searchParams.get('id'));
       const rawDayId=url.searchParams.get('day_id');
       const dayId = integer(rawDayId);
       const kind = clean(url.searchParams.get('kind'), 20);
       const status = clean(url.searchParams.get('status'), 20);
       const search = clean(url.searchParams.get('search'), 120);
       const category=clean(url.searchParams.get('category'),60);
+      if(mediaId){filters.push('m.id=?');bindings.push(mediaId);}
       if(rawDayId==='none') filters.push('m.day_id IS NULL'); else if (dayId) { filters.push('m.day_id=?'); bindings.push(dayId); }
       if (['image','video','audio','document'].includes(kind)) { filters.push('m.kind=?'); bindings.push(kind); }
       if (['draft','published','archived'].includes(status)) { filters.push('m.status=?'); bindings.push(status); }
@@ -45,14 +47,22 @@ export async function onRequest({ request, env }) {
       }
       if (body.action === 'bulk_status' && Array.isArray(body.ids)) {
         const status = statusValue(body.status, ['draft','published','archived'], 'published');
-        const statements = body.ids.slice(0, 1000).map(id => env.DB.prepare('UPDATE media SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(status, integer(id)));
+        const ids=[...new Set(body.ids.slice(0,1000).map(integer).filter(Boolean))];
+        const statements = ids.map(id => env.DB.prepare('UPDATE media SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(status, id));
         if (statements.length) await runBatches(env, statements);
+        if(status!=='published'&&ids.length){
+          for(let index=0;index<ids.length;index+=80){const chunk=ids.slice(index,index+80),placeholders=chunk.map(()=>'?').join(',');await env.DB.prepare(`UPDATE days SET video_key='',updated_at=CURRENT_TIMESTAMP WHERE video_key IN (SELECT object_key FROM media WHERE id IN (${placeholders}) AND kind='video')`).bind(...chunk).run();}
+        }
         await audit(env, 'bulk_media_status', 'media', '', `${status}:${statements.length}`);
         return json({ ok: true });
       }
       if (body.action === 'bulk_day' && Array.isArray(body.ids)) {
         const dayId = integer(body.day_id) || null;
-        const statements = body.ids.slice(0,1000).map(id=>env.DB.prepare('UPDATE media SET day_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(dayId,integer(id)));
+        const ids=[...new Set(body.ids.slice(0,1000).map(integer).filter(Boolean))];
+        if(ids.length){
+          for(let index=0;index<ids.length;index+=80){const chunk=ids.slice(index,index+80),placeholders=chunk.map(()=>'?').join(',');await env.DB.prepare(`UPDATE days SET video_key='',updated_at=CURRENT_TIMESTAMP WHERE video_key IN (SELECT object_key FROM media WHERE id IN (${placeholders}) AND kind='video') AND id<>?`).bind(...chunk,dayId||0).run();}
+        }
+        const statements = ids.map(id=>env.DB.prepare('UPDATE media SET day_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(dayId,id));
         if(statements.length)await runBatches(env,statements);
         await audit(env,'bulk_media_day','media','',`${dayId||'none'}:${statements.length}`);
         return json({ok:true,updated:statements.length});
@@ -69,10 +79,21 @@ export async function onRequest({ request, env }) {
         const item = await env.DB.prepare("SELECT id,day_id,object_key FROM media WHERE id=? AND kind='image'").bind(id).first();
         if (!item?.day_id) return json({ error: 'invalid_cover', message: 'אפשר לבחור כתמונת שער רק תמונה המשויכת ליום.' }, 400);
         await env.DB.batch([
-          env.DB.prepare('UPDATE media SET is_featured=CASE WHEN id=? THEN 1 ELSE 0 END,updated_at=CURRENT_TIMESTAMP WHERE day_id=? AND kind=\'image\'').bind(id,item.day_id),
+          env.DB.prepare("UPDATE media SET is_featured=CASE WHEN id=? THEN 1 ELSE 0 END,status=CASE WHEN id=? THEN 'published' ELSE status END,updated_at=CURRENT_TIMESTAMP WHERE day_id=? AND kind='image'").bind(id,id,item.day_id),
           env.DB.prepare('UPDATE days SET cover_key=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(item.object_key,item.day_id)
         ]);
         await audit(env, 'set_day_cover', 'media', String(id), `day=${item.day_id}`);
+        return json({ ok: true });
+      }
+      if (body.action === 'set_day_video') {
+        const id = integer(body.id);
+        const item = await env.DB.prepare("SELECT id,day_id,object_key FROM media WHERE id=? AND kind='video'").bind(id).first();
+        if (!item?.day_id) return json({ error: 'invalid_day_video', message: 'אפשר להגדיר סרטון סיכום רק לסרטון המשויך ליום.' }, 400);
+        await env.DB.batch([
+          env.DB.prepare("UPDATE media SET is_featured=CASE WHEN id=? THEN 1 ELSE is_featured END,status=CASE WHEN id=? THEN 'published' ELSE status END,updated_at=CURRENT_TIMESTAMP WHERE day_id=? AND kind='video'").bind(id,id,item.day_id),
+          env.DB.prepare("UPDATE days SET video_key=?,video_url='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(item.object_key,item.day_id)
+        ]);
+        await audit(env, 'set_day_video', 'media', String(id), `day=${item.day_id}`);
         return json({ ok: true });
       }
       const id = integer(body.id);
@@ -80,20 +101,26 @@ export async function onRequest({ request, env }) {
       if (!current) return json({ error: 'not_found', message: 'הקובץ לא נמצא.' }, 404);
       const dayId = body.day_id === undefined ? current.day_id : (integer(body.day_id) || null);
       const artworkKey=body.artwork_key===undefined?(current.artwork_key||''):clean(body.artwork_key,1000);
+      const nextKind=body.kind===undefined?current.kind:statusValue(body.kind,['image','video','audio','document'],current.kind);
+      const nextStatus=body.status===undefined?current.status:statusValue(body.status,['draft','published','archived'],current.status);
       await env.DB.prepare(`UPDATE media SET day_id=?,kind=?,category=?,title=?,alt_text=?,caption=?,status=?,is_featured=?,sort_order=?,artwork_key=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
         .bind(
           dayId,
-          body.kind===undefined?current.kind:statusValue(body.kind,['image','video','audio','document'],current.kind),
+          nextKind,
           body.category===undefined?current.category:clean(body.category,60),
           body.title===undefined?current.title:clean(body.title,240),
           body.alt_text===undefined?current.alt_text:clean(body.alt_text,500),
           body.caption===undefined?current.caption:clean(body.caption,1500),
-          body.status===undefined?current.status:statusValue(body.status,['draft','published','archived'],current.status),
+          nextStatus,
           body.is_featured===undefined?current.is_featured:booleanInt(body.is_featured),
           body.sort_order===undefined?current.sort_order:integer(body.sort_order),
           artworkKey,
           id
         ).run();
+      if (current.object_key && (nextKind !== 'video' || nextStatus !== 'published' || Number(dayId || 0) !== Number(current.day_id || 0))) {
+        const keepDay = nextKind === 'video' && nextStatus === 'published' ? (dayId || 0) : 0;
+        await env.DB.prepare("UPDATE days SET video_key='',updated_at=CURRENT_TIMESTAMP WHERE video_key=? AND id<>?").bind(current.object_key,keepDay).run();
+      }
       await audit(env, 'update_media', 'media', String(id), current.original_name);
       return json({ ok: true });
     }
@@ -119,6 +146,7 @@ export async function onRequest({ request, env }) {
         const chunk = keys.slice(index,index+40), placeholders = chunk.map(() => '?').join(',');
         const cleanup=[
           env.DB.prepare(`UPDATE days SET cover_key='',updated_at=CURRENT_TIMESTAMP WHERE cover_key IN (${placeholders})`).bind(...chunk),
+          env.DB.prepare(`UPDATE days SET video_key='',updated_at=CURRENT_TIMESTAMP WHERE video_key IN (${placeholders})`).bind(...chunk),
           env.DB.prepare(`DELETE FROM homepage_slides WHERE object_key IN (${placeholders})`).bind(...chunk),
           env.DB.prepare(`DELETE FROM homepage_slides WHERE poster_key IN (${placeholders})`).bind(...chunk),
           env.DB.prepare(`UPDATE settings SET value='',updated_at=CURRENT_TIMESTAMP WHERE key IN (${settingKeys}) AND value IN (${placeholders})`).bind(...chunk),

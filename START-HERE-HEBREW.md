@@ -1,66 +1,39 @@
-# מתחילים כאן — קעמפ גן ישראל חדרה V12.1
+# פריסה נקייה V16 — קעמפ גן ישראל חדרה
 
-המערכת בנויה ל־Cloudflare Pages + Pages Functions + D1 + R2. המענה לפניות והתפוצה פועלים דרך קישורי WhatsApp, ללא Resend וללא API חיצוני.
+## אתר קיים
 
-## 1. העלאת הקבצים ל־GitHub
+הגרסה אינה מוחקת או מאפסת מידע ב־D1 או קבצים ב־R2. אין צורך להריץ SQL עבור האתר הקיים.
 
 1. חלץ את קובץ ה־ZIP.
-2. ב־GitHub Desktop לחץ **Show in Explorer**.
-3. העתק את כל תוכן החבילה לתיקיית המאגר ואשר החלפת קבצים.
-4. ודא שאין במאגר קובץ פעיל בשם `wrangler.jsonc` או `wrangler.toml` אם החיבורים מנוהלים דרך Cloudflare Dashboard.
-5. בצע Commit בשם `Install Camp V12.1` ואז **Push origin**.
+2. העתק את כל הקבצים אל שורש המאגר `camp-gan-israel-hadera-v2` ואשר החלפה.
+3. אין להעתיק תיקיית `.git` ממקום אחר ואין למחוק את `.git` הקיימת במאגר.
+4. ב־GitHub Desktop צור Commit בשם:
+   `Clean full deployment V16`
+5. לחץ `Push origin`.
+6. המתן שהפריסה ב־Cloudflare תסתיים בהצלחה.
+7. פתח את האתר בחלון פרטי או בצע רענון קשיח. אם נשארה גרסה ישנה, מחק את נתוני האתר/Service Worker פעם אחת.
 
-## 2. הגדרות Cloudflare Pages
+## הגדרות Cloudflare שצריכות להישאר
 
-- Framework preset: `None`
 - Build command: ריק
 - Build output directory: `public`
-- Root directory: `/`
-
-## 3. חיבורי D1 ו־R2
-
-ב־**Settings → Bindings**:
-
-- D1 database: שם משתנה `DB`, מסד `camp-database`
-- R2 bucket: שם משתנה `MEDIA`, דלי `camp-media`
-
-## 4. משתנים וסודות
-
-ב־**Settings → Variables and secrets**:
-
+- D1 binding בשם `DB` אל `camp-database`
+- R2 binding בשם `MEDIA` אל `camp-media`
 - `ADMIN_PASSWORD` — Secret
 - `SESSION_SECRET` — Secret, לפחות 32 תווים
-- `SESSION_TTL_HOURS` — Plaintext, ערך `12`
-- `MAX_UPLOAD_MB` — Plaintext, ערך `95`
+- `SESSION_TTL_HOURS` — לדוגמה `12`
+- `MAX_UPLOAD_MB` — מומלץ `95`
 
-אין צורך ב־Resend או ב־WhatsApp API.
+## אתר חדש וריק בלבד
 
-## 5. מסד הנתונים
+במסד חדש יש להריץ לפי הסדר:
 
-### אתר שכבר פועל על V12
-לא צריך להריץ SQL נוסף עבור V12.1.
+1. `migrations/0000_initial.sql`
+2. `migrations/0003_management_upgrade.sql`
 
-### אתר חדש וריק
-הרץ את `migrations/0000_initial.sql` בלבד.
+אין להריץ `RESET-AND-INSTALL.sql` באתר קיים עם מידע.
 
-### אתר ישן לפני V12
-הרץ לפי הוראות השדרוג הקודמות את `migrations/0002_communications_and_slides.sql` פעם אחת בלבד.
+## סרטון סיכום של יום
 
-אל תריץ `RESET-AND-INSTALL.sql` כשיש מידע שחשוב לשמור.
-
-## 6. שימוש יומיומי
-
-- **פניות מהאתר** → פתיחת פנייה → **השב ב־WhatsApp**.
-- **תפוצת WhatsApp** → כתיבת הודעה → פתיחת תור שליחה, העתקת מספרים או הורדת CSV.
-- **מדיה והעלאות** → סימון כמה קבצים → פרסום, טיוטה, ארכיון או **מחיקת הנבחרים**.
-- **תוכן ועיצוב → באנר ראשי** → תמונה, סרטון או מצגת מתחלפת.
-- **תוכן ועיצוב → תוכן העמוד** → סרטון סיכום באזור „הסיפור שלנו”.
-- **תוכן ועיצוב → נגן ההמנונים** → תמונה במרכז התקליט.
-
-## 7. חשוב לגבי WhatsApp
-
-המערכת מכינה את ההודעה ופותחת את הצ׳אט המתאים. היא לא לוחצת על כפתור השליחה במקומך ולא שולחת אוטומטית למאות אנשים. הדבר מונע צורך ב־WhatsApp Business API ושומר על תהליך פשוט וברור.
-
-כתובת הניהול:
-
-`https://camp-gan-israel-hadera-v2.pages.dev/admin/`
+בניהול: `מדיה והעלאות` → עריכת סרטון המשויך ליום → `הגדרה כסרטון סיכום היום`.
+הסרטון יוצג מעל התמונות ולא יופיע שוב בתוך רשת הגלריה.

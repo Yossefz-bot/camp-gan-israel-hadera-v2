@@ -441,154 +441,17 @@ img,video,iframe,svg,canvas{
 }
 
 
-/* V15.4 — תמונות וסרטונים תמיד נכנסים למסך */
-.lightbox{
-  overflow:hidden!important;
-}
-.lightbox-shell{
-  width:100vw;
-  height:100dvh;
-  max-height:100dvh;
-  overflow:hidden;
-}
-.lightbox-stage{
-  min-height:0;
-  overflow:hidden;
-}
-.lightbox-stage img,
-.lightbox-stage video{
-  width:auto!important;
-  height:auto!important;
-  max-width:100%!important;
-  max-height:100%!important;
-  object-fit:contain!important;
-}
-@media (max-width:760px){
-  .lightbox-stage{
-    height:calc(100dvh - 82px)!important;
-    padding:8px!important;
-  }
-  .lightbox-stage img,
-  .lightbox-stage video{
-    max-width:calc(100vw - 16px)!important;
-    max-height:calc(100dvh - 100px)!important;
-  }
-}
-
-
-/* =========================================================
-   V15.8 FINAL — גלריה נקייה 16:9 וסרטון סיכום נפרד
-   ========================================================= */
-
-/* רשת אחידה ונקייה */
-.masonry-grid{
-  display:grid!important;
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  gap:14px!important;
-  columns:auto!important;
-  column-gap:0!important;
-}
-
-/* משבצת 16:9 ללא "מסגרת" פנימית */
-.media-tile{
-  width:100%;
-  aspect-ratio:16/9!important;
-  margin:0!important;
-  break-inside:auto!important;
-  background:transparent!important;
-  box-shadow:0 6px 18px rgba(23,59,103,.08);
-}
-
-/* התמונות ממלאות את כל המשבצת; תמונות לאורך נחתכות בצורה נקייה */
-.media-tile img,
-.media-tile video{
-  width:100%!important;
-  height:100%!important;
-  min-height:0!important;
-  object-fit:cover!important;
-  object-position:center!important;
-  background:transparent!important;
-}
-
-/* הכותרת והלב מוסתרים עד Hover */
-.media-tile-overlay{
-  opacity:0!important;
-}
-.media-tile-actions{
-  opacity:0!important;
-  transform:translateY(8px)!important;
-  pointer-events:none;
-}
-.media-tile:hover .media-tile-overlay,
-.media-tile:focus-within .media-tile-overlay{
-  opacity:1!important;
-}
-.media-tile:hover .media-tile-actions,
-.media-tile:focus-within .media-tile-actions{
-  opacity:1!important;
-  transform:none!important;
-  pointer-events:auto;
-}
-
-/* סרטון סיכום נשאר למעלה בלבד */
-.day-video-section{
-  padding-top:58px;
-  padding-bottom:38px;
-}
-.day-video-wrap{
-  width:min(960px,100%)!important;
-  aspect-ratio:16/9!important;
-  border-radius:24px;
-}
-.day-video-wrap iframe,
-.day-video-wrap video{
-  width:100%!important;
-  height:100%!important;
-  object-fit:contain!important;
-}
-
-/* שלדי טעינה ביחס זהה */
-.masonry-skeleton,
-.masonry-skeleton.tall,
-.masonry-skeleton.wide{
-  width:100%;
-  height:auto!important;
-  aspect-ratio:16/9;
-  margin:0!important;
-}
-
-/* טאבלט */
-@media(max-width:1050px){
-  .masonry-grid{
-    grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  }
-}
-
-/* טלפון */
-@media(max-width:720px){
-  .masonry-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;
-    gap:9px!important;
-  }
-  .media-tile{
-    border-radius:13px;
-  }
-  /* בטלפון אין hover, לכן לא מציגים לב קבוע */
-  .media-tile-actions,
-  .media-tile-overlay{
-    opacity:0!important;
-  }
-}
-
-/* טלפון צר מאוד */
-@media(max-width:360px){
-  .masonry-grid{
-    grid-template-columns:1fr!important;
-  }
-}
-
-/* בתצוגה המוגדלת רואים את התמונה בשלמותה */
-.lightbox-stage img,
-.lightbox-stage video{
-  object-fit:contain!important;
-}
+/* V16 — public gallery: clean 16:9 cards and hover-only controls */
+.masonry-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;columns:auto;column-gap:0}
+.media-tile{width:100%;aspect-ratio:16/9;margin:0;break-inside:auto;background:var(--surface-2);border-radius:17px;overflow:hidden;box-shadow:0 6px 18px rgba(23,59,103,.08)}
+.media-tile img,.media-tile video{display:block;width:100%;height:100%;min-height:0;object-fit:cover;object-position:center;background:transparent}
+.media-tile-overlay{opacity:0}.media-tile-actions{opacity:0;transform:translateY(8px);pointer-events:none}
+.media-tile:hover .media-tile-overlay,.media-tile:focus-within .media-tile-overlay{opacity:1}
+.media-tile:hover .media-tile-actions,.media-tile:focus-within .media-tile-actions{opacity:1;transform:none;pointer-events:auto}
+.masonry-skeleton,.masonry-skeleton.tall,.masonry-skeleton.wide{width:100%;height:auto;aspect-ratio:16/9;margin:0;border-radius:17px}
+.day-video-section{padding-top:58px;padding-bottom:38px}.day-video-wrap{width:min(960px,100%);aspect-ratio:16/9;border-radius:24px;overflow:hidden;background:#000}
+.day-video-wrap.portrait{aspect-ratio:9/16;max-width:440px}.day-video-wrap.square{aspect-ratio:1;max-width:700px}
+.day-video-wrap iframe,.day-video-wrap video{width:100%;height:100%;object-fit:contain;border:0;background:#000}.lightbox-stage img,.lightbox-stage video{object-fit:contain}
+@media(max-width:1050px){.masonry-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:720px){.masonry-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.media-tile{border-radius:13px}.media-tile-actions,.media-tile-overlay{opacity:0!important;pointer-events:none!important}}
+@media(max-width:360px){.masonry-grid{grid-template-columns:1fr}}

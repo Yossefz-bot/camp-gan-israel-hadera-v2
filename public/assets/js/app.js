@@ -35,12 +35,11 @@ function setText(selector, value) {
 
 function setLink(node, url, text) {
   if (!node) return;
-  if (url) {
-    node.href = url;
-    node.classList.remove('is-hidden');
-    if (text) node.textContent = text;
-    if (/^https?:/.test(url)) { node.target = '_blank'; node.rel = 'noopener'; }
-  } else node.classList.add('is-hidden');
+  const href=String(url||'').trim();
+  if (!href) { node.classList.add('is-hidden');node.removeAttribute('href');return; }
+  node.href=href;node.classList.remove('is-hidden');if(text)node.textContent=text;
+  if (/^https?:/i.test(href)) { node.target='_blank';node.rel='noopener'; }
+  else { node.removeAttribute('target');node.removeAttribute('rel'); }
 }
 
 function homepageVideoEmbedUrl(url, autoplay = false, loop = false, controls = true) {
