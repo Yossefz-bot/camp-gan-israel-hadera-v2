@@ -2,13 +2,11 @@ import { DEFAULT_SETTINGS, json, loadSettings, mediaUrl, setupState } from './_s
 
 function decorateDay(day) {
   const coverKey = day.cover_key || day.fallback_cover_key || '';
-  const videoKey = day.configured_video_key || (!day.video_url ? day.fallback_video_key : '') || '';
   return {
     ...day,
     cover_key: coverKey,
     cover_url: mediaUrl(coverKey),
-    video_key: videoKey,
-    video_src: videoKey ? mediaUrl(videoKey) : day.video_url || ''
+    video_src: day.video_key ? mediaUrl(day.video_key) : day.video_url || ''
   };
 }
 
@@ -32,9 +30,7 @@ export async function onRequestGet({ env }) {
           (SELECT COUNT(*) FROM media m WHERE m.day_id=d.id AND m.status='published') AS media_count,
           (SELECT COUNT(*) FROM media m WHERE m.day_id=d.id AND m.kind='image' AND m.status='published') AS photo_count,
           (SELECT COUNT(*) FROM media m WHERE m.day_id=d.id AND m.kind='video' AND m.status='published') AS video_count,
-          (SELECT object_key FROM media m WHERE m.day_id=d.id AND m.kind='image' AND m.status='published' ORDER BY m.is_featured DESC,m.sort_order,m.id LIMIT 1) AS fallback_cover_key,
-          (SELECT object_key FROM media m WHERE m.day_id=d.id AND m.kind='video' AND m.status='published' AND m.object_key=d.video_key LIMIT 1) AS configured_video_key,
-          (SELECT object_key FROM media m WHERE m.day_id=d.id AND m.kind='video' AND m.status='published' ORDER BY m.is_featured DESC,m.sort_order,m.id LIMIT 1) AS fallback_video_key
+          (SELECT object_key FROM media m WHERE m.day_id=d.id AND m.kind='image' AND m.status='published' ORDER BY m.is_featured DESC,m.sort_order,m.id LIMIT 1) AS fallback_cover_key
         FROM days d
         WHERE d.status='published'
         ORDER BY d.sort_order ASC, CASE WHEN d.date='' THEN 1 ELSE 0 END, d.date DESC, d.id DESC

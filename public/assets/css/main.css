@@ -441,61 +441,364 @@ img,video,iframe,svg,canvas{
 }
 
 
-/* V16 — public gallery: clean 16:9 cards and hover-only controls */
-.masonry-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;columns:auto;column-gap:0}
-.media-tile{width:100%;aspect-ratio:16/9;margin:0;break-inside:auto;background:var(--surface-2);border-radius:17px;overflow:hidden;box-shadow:0 6px 18px rgba(23,59,103,.08)}
-.media-tile img,.media-tile video{display:block;width:100%;height:100%;min-height:0;object-fit:cover;object-position:center;background:transparent}
-.media-tile-overlay{opacity:0}.media-tile-actions{opacity:0;transform:translateY(8px);pointer-events:none}
-.media-tile:hover .media-tile-overlay,.media-tile:focus-within .media-tile-overlay{opacity:1}
-.media-tile:hover .media-tile-actions,.media-tile:focus-within .media-tile-actions{opacity:1;transform:none;pointer-events:auto}
-.masonry-skeleton,.masonry-skeleton.tall,.masonry-skeleton.wide{width:100%;height:auto;aspect-ratio:16/9;margin:0;border-radius:17px}
-.day-video-section{padding-top:58px;padding-bottom:38px}.day-video-wrap{width:min(960px,100%);aspect-ratio:16/9;border-radius:24px;overflow:hidden;background:#000}
-.day-video-wrap.portrait{aspect-ratio:9/16;max-width:440px}.day-video-wrap.square{aspect-ratio:1;max-width:700px}
-.day-video-wrap iframe,.day-video-wrap video{width:100%;height:100%;object-fit:contain;border:0;background:#000}.lightbox-stage img,.lightbox-stage video{object-fit:contain}
-@media(max-width:1050px){.masonry-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:720px){.masonry-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.media-tile{border-radius:13px}.media-tile-actions,.media-tile-overlay{opacity:0!important;pointer-events:none!important}}
-@media(max-width:360px){.masonry-grid{grid-template-columns:1fr}}
-/* תפריט צף בגלילה למעלה */
-#site-header {
-  position: sticky;
-  top: 0;
-  z-index: 9999;
-  transition:
-    transform 0.28s ease,
-    background-color 0.28s ease,
-    box-shadow 0.28s ease,
-    backdrop-filter 0.28s ease;
-  will-change: transform;
+/* V15.4 — תמונות וסרטונים תמיד נכנסים למסך */
+.lightbox{
+  overflow:hidden!important;
+}
+.lightbox-shell{
+  width:100vw;
+  height:100dvh;
+  max-height:100dvh;
+  overflow:hidden;
+}
+.lightbox-stage{
+  min-height:0;
+  overflow:hidden;
+}
+.lightbox-stage img,
+.lightbox-stage video{
+  width:auto!important;
+  height:auto!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  object-fit:contain!important;
+}
+@media (max-width:760px){
+  .lightbox-stage{
+    height:calc(100dvh - 82px)!important;
+    padding:8px!important;
+  }
+  .lightbox-stage img,
+  .lightbox-stage video{
+    max-width:calc(100vw - 16px)!important;
+    max-height:calc(100dvh - 100px)!important;
+  }
 }
 
-/* התפריט נעלם בגלילה למטה */
-#site-header.header-hidden {
-  transform: translateY(-110%);
+
+/* =========================================================
+   V15.8 FINAL — גלריה נקייה 16:9 וסרטון סיכום נפרד
+   ========================================================= */
+
+/* רשת אחידה ונקייה */
+.masonry-grid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:14px!important;
+  columns:auto!important;
+  column-gap:0!important;
 }
 
-/* מראה התפריט כשהוא צף */
-#site-header.header-floating {
-  background: rgba(11, 25, 44, 0.94);
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-#site-header {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 99999 !important;
-  transition:
-    transform 0.25s ease,
-    background-color 0.25s ease,
-    box-shadow 0.25s ease !important;
+/* משבצת 16:9 ללא "מסגרת" פנימית */
+.media-tile{
+  width:100%;
+  aspect-ratio:16/9!important;
+  margin:0!important;
+  break-inside:auto!important;
+  background:transparent!important;
+  box-shadow:0 6px 18px rgba(23,59,103,.08);
 }
 
-#site-header.header-hidden {
-  transform: translateY(-110%) !important;
+/* התמונות ממלאות את כל המשבצת; תמונות לאורך נחתכות בצורה נקייה */
+.media-tile img,
+.media-tile video{
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  background:transparent!important;
 }
 
-#site-header.header-floating {
-  background: rgba(12, 27, 48, 0.96) !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+/* הכותרת והלב מוסתרים עד Hover */
+.media-tile-overlay{
+  opacity:0!important;
+}
+.media-tile-actions{
+  opacity:0!important;
+  transform:translateY(8px)!important;
+  pointer-events:none;
+}
+.media-tile:hover .media-tile-overlay,
+.media-tile:focus-within .media-tile-overlay{
+  opacity:1!important;
+}
+.media-tile:hover .media-tile-actions,
+.media-tile:focus-within .media-tile-actions{
+  opacity:1!important;
+  transform:none!important;
+  pointer-events:auto;
+}
+
+/* סרטון סיכום נשאר למעלה בלבד */
+.day-video-section{
+  padding-top:58px;
+  padding-bottom:38px;
+}
+.day-video-wrap{
+  width:min(960px,100%)!important;
+  aspect-ratio:16/9!important;
+  border-radius:24px;
+}
+.day-video-wrap iframe,
+.day-video-wrap video{
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+}
+
+/* שלדי טעינה ביחס זהה */
+.masonry-skeleton,
+.masonry-skeleton.tall,
+.masonry-skeleton.wide{
+  width:100%;
+  height:auto!important;
+  aspect-ratio:16/9;
+  margin:0!important;
+}
+
+/* טאבלט */
+@media(max-width:1050px){
+  .masonry-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
+
+/* טלפון */
+@media(max-width:720px){
+  .masonry-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:9px!important;
+  }
+  .media-tile{
+    border-radius:13px;
+  }
+  /* בטלפון אין hover, לכן לא מציגים לב קבוע */
+  .media-tile-actions,
+  .media-tile-overlay{
+    opacity:0!important;
+  }
+}
+
+/* טלפון צר מאוד */
+@media(max-width:360px){
+  .masonry-grid{
+    grid-template-columns:1fr!important;
+  }
+}
+
+/* בתצוגה המוגדלת רואים את התמונה בשלמותה */
+.lightbox-stage img,
+.lightbox-stage video{
+  object-fit:contain!important;
+}
+
+
+/* V16 Stable — final public gallery behavior */
+.masonry-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;columns:auto!important}
+.media-tile{aspect-ratio:16/9!important;margin:0!important;background:var(--surface-2)!important;border:0!important;box-shadow:0 6px 18px rgba(23,59,103,.08)!important}
+.media-tile img,.media-tile video{width:100%!important;height:100%!important;min-height:0!important;object-fit:cover!important;background:transparent!important}
+.media-tile-overlay,.media-tile-actions{opacity:0!important;pointer-events:none}
+@media (hover:hover) and (pointer:fine){.media-tile:hover .media-tile-overlay,.media-tile:focus-within .media-tile-overlay{opacity:1!important}.media-tile:hover .media-tile-actions,.media-tile:focus-within .media-tile-actions{opacity:1!important;transform:none!important;pointer-events:auto}}
+@media(max-width:1050px){.masonry-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:720px){.masonry-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}.media-tile-actions,.media-tile-overlay{display:none!important}}
+@media(max-width:360px){.masonry-grid{grid-template-columns:1fr!important}}
+
+
+/* =========================================================
+   V16.1 — נגן מובייל יציב
+   ========================================================= */
+.music-player{
+  min-width:0;
+}
+.record{
+  position:relative;
+}
+.player-main{
+  width:100%;
+  min-width:0;
+}
+.progress-wrap{
+  min-width:0;
+}
+.progress-wrap input{
+  min-width:0;
+  touch-action:pan-x;
+}
+.player-controls button{
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  padding:0;
+  line-height:1;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.player-controls button:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+.playlist-item{
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+.playlist-play{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:rgba(255,255,255,.08);
+  font-size:10px;
+}
+.playlist-item.active .playlist-play{
+  background:var(--primary);
+}
+.player-status{
+  min-height:20px;
+  margin:10px 0 0;
+  color:rgba(255,255,255,.72);
+  font-size:12px;
+  text-align:center;
+}
+.player-status.error{
+  color:#ffd4d4;
+}
+.music-player.is-loading .play-button{
+  font-size:0;
+}
+.music-player.is-loading .play-button:after{
+  content:"";
+  width:20px;
+  height:20px;
+  border:3px solid rgba(255,255,255,.38);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:playerSpinner .75s linear infinite;
+}
+@keyframes playerSpinner{to{transform:rotate(360deg)}}
+
+@media(max-width:640px){
+  .songs-section .container{
+    width:min(100% - 20px,var(--container));
+  }
+  .music-player{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:16px!important;
+    width:100%!important;
+    padding:18px 14px!important;
+    border-radius:24px!important;
+    overflow:hidden!important;
+  }
+  .album-art{
+    height:132px!important;
+  }
+  .record{
+    width:122px!important;
+    height:122px!important;
+    max-width:none!important;
+    max-height:none!important;
+    box-shadow:0 12px 30px rgba(0,0,0,.32);
+  }
+  .record:before{
+    width:58px;
+    height:58px;
+    box-shadow:inset 0 0 0 5px var(--accent);
+  }
+  .record span#record-center{
+    width:50px!important;
+    height:50px!important;
+    font-size:13px;
+  }
+  .music-note{
+    display:none;
+  }
+  .now-playing{
+    text-align:center;
+    min-width:0;
+  }
+  .now-playing h3{
+    margin-top:4px;
+    font-size:24px!important;
+    line-height:1.2;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .now-playing small{
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .progress-wrap{
+    width:100%;
+    grid-template-columns:38px minmax(0,1fr) 38px!important;
+    gap:7px!important;
+    margin:20px 0 14px!important;
+    font-size:11px;
+  }
+  .progress-wrap input{
+    width:100%;
+    height:32px;
+    margin:0;
+  }
+  .player-controls{
+    display:grid!important;
+    grid-template-columns:repeat(4,52px)!important;
+    justify-content:center!important;
+    align-items:center!important;
+    gap:9px!important;
+    width:100%;
+    direction:ltr;
+  }
+  .player-controls button{
+    width:52px!important;
+    height:52px!important;
+    font-size:18px;
+  }
+  .player-controls .play-button{
+    width:52px!important;
+    height:52px!important;
+    font-size:20px;
+  }
+  .volume-control{
+    display:none!important;
+  }
+  .playlist{
+    grid-column:1!important;
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    width:100%;
+    max-height:300px!important;
+    padding:0 0 0 3px!important;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  .playlist-item{
+    min-height:56px;
+    padding:9px 8px!important;
+    border-radius:13px;
+  }
+  .playlist-number{
+    width:34px;
+    height:34px;
+  }
+}
+
+@media(max-width:360px){
+  .music-player{
+    padding-inline:10px!important;
+  }
+  .player-controls{
+    grid-template-columns:repeat(4,48px)!important;
+    gap:6px!important;
+  }
+  .player-controls button,
+  .player-controls .play-button{
+    width:48px!important;
+    height:48px!important;
+  }
 }

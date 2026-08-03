@@ -1,5 +1,5 @@
-// Public day gallery V16
-const state={slug:'',day:null,media:[],visible:[],nextOffset:0,kind:'all',favorites:new Set(JSON.parse(localStorage.getItem('camp-favorites')||'[]')),lightboxIndex:0};
+// Gallery stable build v13.2.0
+const state={slug:'',day:null,media:[],visible:[],nextOffset:0,kind:'all',favorites:new Set(JSON.parse(localStorage.getItem('camp-favorites')||'[]')),lightboxIndex:0,summaryVideoId:null,summaryVideoSrc:''};
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const escapeHtml=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
 const formatNumber=v=>new Intl.NumberFormat('he-IL').format(Number(v||0));
@@ -9,24 +9,89 @@ function setText(s,v){const n=$(s);if(n)n.textContent=v??''}
 function saveFavorites(){localStorage.setItem('camp-favorites',JSON.stringify([...state.favorites]));updateCounts()}
 function updateCounts(){setText('#favorites-count',state.favorites.size)}
 function formatDate(value){if(!value)return'';const d=new Date(`${value}T12:00:00`);return Number.isNaN(d.getTime())?value:new Intl.DateTimeFormat('he-IL',{day:'numeric',month:'long',year:'numeric'}).format(d)}
-function videoEmbed(src){
-  const text=String(src||'');
-  const youtube=text.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);const vimeo=text.match(/vimeo\.com\/(\d+)/);
-  if(youtube)return `<iframe src="https://www.youtube-nocookie.com/embed/${youtube[1]}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="סרטון סיכום היום"></iframe>`;
-  if(vimeo)return `<iframe src="https://player.vimeo.com/video/${vimeo[1]}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="סרטון סיכום היום"></iframe>`;
-  return `<video src="${escapeHtml(text)}" controls playsinline preload="metadata"></video>`;
+function videoEmbed(src,aspect='landscape'){
+  const wrapClass=aspect==='portrait'?'portrait':aspect==='square'?'square':'';
+  const youtube=src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);const vimeo=src.match(/vimeo\.com\/(\d+)/);
+  if(youtube)return `<div class="day-video-wrap ${wrapClass}"><iframe src="https://www.youtube-nocookie.com/embed/${youtube[1]}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="סרטון היום"></iframe></div>`;
+  if(vimeo)return `<div class="day-video-wrap ${wrapClass}"><iframe src="https://player.vimeo.com/video/${vimeo[1]}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="סרטון היום"></iframe></div>`;
+  return `<div class="day-video-wrap ${wrapClass}"><video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video></div>`;
 }
 function showSummaryVideo(src,aspect='landscape'){
-  const section=$('#day-video-section'),wrap=$('#day-video-wrap');if(!section||!wrap||!src)return;
-  section.classList.remove('is-hidden');wrap.className=`day-video-wrap ${aspect==='portrait'?'portrait':aspect==='square'?'square':''}`;wrap.innerHTML=videoEmbed(src);
+  if(!src)return;
+  const section=$('#day-video-section'),wrap=$('#day-video-wrap');
+  if(!section||!wrap)return;
+  state.summaryVideoSrc=String(src);
+  section.classList.remove('is-hidden');
+  wrap.className=`day-video-wrap ${aspect==='portrait'?'portrait':aspect==='square'?'square':''}`;
+  const embedded=videoEmbed(src,aspect);
+  const temp=document.createElement('div');
+  temp.innerHTML=embedded;
+  const nested=temp.querySelector('.day-video-wrap');
+  wrap.innerHTML=nested?nested.innerHTML:embedded;
 }
 function renderDay(day,total){
-  state.day=day;document.title=`${day.title} | קעמפ גן ישראל חדרה`;setText('#day-title',day.title);setText('#day-label',day.label||'יום בקעמפ');setText('#day-date',day.hebrew_date||formatDate(day.date));setText('#day-count',`${formatNumber(total)} פריטים`);setText('#day-description',day.description||'כל הרגעים, החוויות והחיוכים של היום.');
+  state.day=day;
+  document.title=`${day.title} | קעמפ גן ישראל חדרה`;
+  setText('#day-title',day.title);
+  setText('#day-label',day.label||'יום בקעמפ');
+  setText('#day-date',day.hebrew_date||formatDate(day.date));
+  setText('#day-count',`${formatNumber(total)} פריטים`);
+  setText('#day-description',day.description||'כל הרגעים, החוויות והחיוכים של היום.');
   if(day.cover_url&&$('#day-cover'))$('#day-cover').style.backgroundImage=`url("${day.cover_url.replace(/"/g,'%22')}")`;
   if(day.video_src)showSummaryVideo(day.video_src,day.video_aspect||'landscape');
-  if(day.story){const section=$('#day-story-section');if(section)section.classList.remove('is-hidden');setText('#day-story',day.story)}
+  if(day.story){
+    const section=$('#day-story-section');
+    if(section)section.classList.remove('is-hidden');
+    setText('#day-story',day.story);
+  }
 }
-function galleryItems(){return state.media}
+function normalizeComparable(value){
+  return decodeURIComponent(String(value||''))
+    .replace(/^https?:\/\/[^/]+/i,'')
+    .replace(/^\/api\/media\//,'')
+    .replace(/[?#].*$/,'')
+    .replace(/^\/+|\/+$/g,'')
+    .toLowerCase();
+}
+function isSummaryVideo(item){
+  if(!item||item.kind!=='video')return false;
+
+  const title=String(item.title||item.original_name||'');
+  const category=String(item.category||'');
+  if(/סיכום|summary/i.test(`${title} ${category}`))return true;
+
+  const configured=normalizeComparable(state.summaryVideoSrc||state.day?.video_src);
+  if(!configured)return false;
+
+  const candidates=[
+    item.url,
+    item.object_key,
+    item.download_url,
+    item.original_name
+  ].map(normalizeComparable).filter(Boolean);
+
+  return candidates.some(candidate=>
+    candidate===configured||
+    candidate.endsWith(configured)||
+    configured.endsWith(candidate)
+  );
+}
+function ensureSummaryVideo(){
+  if(state.summaryVideoId)return;
+  const videos=state.media.filter(item=>item.kind==='video');
+  const summary=videos.find(isSummaryVideo)||(!state.summaryVideoSrc?videos[0]:null);
+  if(!summary)return;
+  state.summaryVideoId=Number(summary.id);
+  if(!state.summaryVideoSrc)showSummaryVideo(summary.url,state.day?.video_aspect||'landscape');
+}
+function galleryItems(){
+  return state.media.filter(item=>{
+    if(item.kind!=='video')return true;
+    if(Number(item.id)===Number(state.summaryVideoId))return false;
+    return !isSummaryVideo(item);
+  });
+}
+
 function tile(item,index){
   const fav=state.favorites.has(item.id);const title=item.title||item.original_name||'רגע מהקעמפ';
   const media=item.kind==='video'?`<video src="${item.url}" muted preload="metadata" playsinline></video>`:`<img src="${item.url}" alt="${escapeHtml(item.alt_text||title)}" loading="lazy">`;
@@ -59,7 +124,7 @@ function initLightbox(){
 }
 async function loadMedia(reset=false){
   if(reset){state.media=[];state.nextOffset=0;const grid=$('#media-grid');if(grid)grid.innerHTML='<div class="masonry-skeleton"></div><div class="masonry-skeleton tall"></div><div class="masonry-skeleton"></div>'}
-  const offset=state.nextOffset??0;const data=await fetchJson(`/api/day?slug=${encodeURIComponent(state.slug)}&offset=${offset}&limit=48`);if(reset)renderDay(data.day,data.total);state.media.push(...data.media);state.nextOffset=data.next_offset;applyFilter();const loadMore=$('#load-more');if(loadMore)loadMore.classList.toggle('is-hidden',data.next_offset===null);
+  const offset=state.nextOffset??0;const data=await fetchJson(`/api/day?slug=${encodeURIComponent(state.slug)}&offset=${offset}&limit=48`);if(reset)renderDay(data.day,data.total);state.media.push(...data.media);state.nextOffset=data.next_offset;ensureSummaryVideo();applyFilter();const loadMore=$('#load-more');if(loadMore)loadMore.classList.toggle('is-hidden',data.next_offset===null);
 }
 function initControls(){
   $$('.day-gallery-tools [data-kind]').forEach(btn=>btn.addEventListener('click',()=>{$$('.day-gallery-tools [data-kind]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');state.kind=btn.dataset.kind;applyFilter()}));

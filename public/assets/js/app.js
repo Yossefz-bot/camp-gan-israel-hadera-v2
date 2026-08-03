@@ -36,10 +36,18 @@ function setText(selector, value) {
 function setLink(node, url, text) {
   if (!node) return;
   const href=String(url||'').trim();
-  if (!href) { node.classList.add('is-hidden');node.removeAttribute('href');return; }
-  node.href=href;node.classList.remove('is-hidden');if(text)node.textContent=text;
-  if (/^https?:/i.test(href)) { node.target='_blank';node.rel='noopener'; }
-  else { node.removeAttribute('target');node.removeAttribute('rel'); }
+  if (href) {
+    node.href = href;
+    node.classList.remove('is-hidden');
+    if (text) node.textContent = text;
+    if (/^https?:/i.test(href)) { node.target = '_blank'; node.rel = 'noopener'; }
+    else { node.removeAttribute('target'); node.removeAttribute('rel'); }
+    node.removeAttribute('aria-disabled');
+  } else {
+    node.removeAttribute('href');
+    node.classList.add('is-hidden');
+    node.setAttribute('aria-disabled','true');
+  }
 }
 
 function homepageVideoEmbedUrl(url, autoplay = false, loop = false, controls = true) {
@@ -186,14 +194,12 @@ function highlightLast(text) {
 }
 
 function configureContact(settings) {
-  const phone = $('#contact-phone');
-  if (settings.phone) { phone.href = `tel:${settings.phone.replace(/[^+\d]/g,'')}`; $('strong', phone).textContent = settings.phone; phone.classList.remove('is-hidden'); }
-  const whatsapp = $('#contact-whatsapp');
-  if (settings.whatsapp) { const digits = settings.whatsapp.replace(/\D/g,'').replace(/^0/,'972'); whatsapp.href = `https://wa.me/${digits}`; whatsapp.target='_blank'; whatsapp.rel='noopener'; whatsapp.classList.remove('is-hidden'); }
-  const email = $('#contact-email');
-  if (settings.email) { email.href = `mailto:${settings.email}`; $('strong', email).textContent = settings.email; email.classList.remove('is-hidden'); }
-  const address = $('#contact-address');
-  if (settings.address) { $('strong', address).textContent = settings.address; address.classList.remove('is-hidden'); if (settings.map_url) { address.style.cursor='pointer'; address.addEventListener('click',()=>window.open(settings.map_url,'_blank','noopener')); } }
+  const phone=$('#contact-phone'),whatsapp=$('#contact-whatsapp'),email=$('#contact-email'),address=$('#contact-address');
+  [phone,whatsapp,email,address].forEach(node=>node?.classList.add('is-hidden'));
+  if (settings.phone&&phone) { phone.href=`tel:${settings.phone.replace(/[^+\d]/g,'')}`; $('strong',phone).textContent=settings.phone; phone.classList.remove('is-hidden'); }
+  if (settings.whatsapp&&whatsapp) { const digits=settings.whatsapp.replace(/\D/g,'').replace(/^0/,'972'); whatsapp.href=`https://wa.me/${digits}`; whatsapp.target='_blank'; whatsapp.rel='noopener'; whatsapp.classList.remove('is-hidden'); }
+  if (settings.email&&email) { email.href=`mailto:${settings.email}`; $('strong',email).textContent=settings.email; email.classList.remove('is-hidden'); }
+  if (settings.address&&address) { $('strong',address).textContent=settings.address; address.classList.remove('is-hidden'); address.onclick=settings.map_url?()=>window.open(settings.map_url,'_blank','noopener'):null; address.style.cursor=settings.map_url?'pointer':''; }
 }
 
 function configureFooter(settings) {
@@ -256,34 +262,215 @@ function renderTestimonials(items) {
 }
 
 function renderSongs(songs) {
-  state.songs = songs;
+  state.songs = Array.isArray(songs) ? songs : [];
   const list = $('#playlist');
-  if (!songs.length) return;
-  list.innerHTML = songs.map((song,index) => `<button class="playlist-item" data-track="${index}"><span class="playlist-number">${index+1}</span><span class="playlist-copy"><strong>${escapeHtml(song.title || song.original_name || `המנון ${index+1}`)}</strong><small>${escapeHtml(song.caption || 'קעמפ גן ישראל חדרה')}</small></span><span>▶</span></button>`).join('');
-  $$('.playlist-item', list).forEach(button => button.addEventListener('click', () => loadTrack(Number(button.dataset.track), true)));
+  if (!list) return;
+
+  if (!state.songs.length) {
+    list.innerHTML = '<div class="playlist-empty"><span>🎵</span><p>ההמנונים יופיעו כאן לאחר ההעלאה.</p></div>';
+    setText('#player-status','');
+    return;
+  }
+
+  list.innerHTML = state.songs.map((song,index) => `<button type="button" class="playlist-item" data-track="${index}" aria-label="ניגון ${escapeHtml(song.title || song.original_name || `המנון ${index+1}`)}"><span class="playlist-number">${index+1}</span><span class="playlist-copy"><strong>${escapeHtml(song.title || song.original_name || `המנון ${index+1}`)}</strong><small>${escapeHtml(song.caption || 'קעמפ גן ישראל חדרה')}</small></span><span class="playlist-play" aria-hidden="true">▶</span></button>`).join('');
+
+  $$('.playlist-item', list).forEach(button => {
+    button.addEventListener('click', async () => {
+      await loadTrack(Number(button.dataset.track), true);
+    });
+  });
+
   loadTrack(0, false);
 }
 
-function loadTrack(index, autoplay) {
-  if (!state.songs.length) return;
-  state.currentTrack = (index + state.songs.length) % state.songs.length;
-  const song = state.songs[state.currentTrack], audio = $('#audio-player');
-  audio.src = song.url || mediaUrl(song.object_key);const center=$('#record-center');if(center){const art=song.artwork_key||state.settings.record_center_image_key;center.innerHTML=art?`<img src="${mediaUrl(art)}" alt="${escapeHtml(song.title||'המנון')}">`:'GI';} setText('#track-title', song.title || song.original_name || `המנון ${state.currentTrack+1}`); setText('#track-subtitle', song.caption || state.settings.camp_name);
-  $$('.playlist-item').forEach((item,i)=>item.classList.toggle('active',i===state.currentTrack));
-  if (autoplay) audio.play().catch(()=>{});
+function setPlayerStatus(message='', type='') {
+  const status = $('#player-status');
+  if (!status) return;
+  status.textContent = message;
+  status.className = `player-status${type ? ` ${type}` : ''}`;
+}
+
+function updatePlayerButtons() {
+  const audio = $('#audio-player');
+  const play = $('#play-track');
+  const player = $('#music-player');
+  if (!audio || !play || !player) return;
+
+  const playing = !audio.paused && !audio.ended;
+  player.classList.toggle('playing', playing);
+  player.classList.toggle('is-loading', audio.readyState < 3 && !audio.paused);
+  play.textContent = playing ? '❚❚' : '▶';
+  play.setAttribute('aria-label', playing ? 'השהיה' : 'ניגון');
+}
+
+async function safePlay() {
+  const audio = $('#audio-player');
+  if (!audio) return false;
+
+  try {
+    setPlayerStatus('טוען את השיר...');
+    await audio.play();
+    setPlayerStatus('');
+    return true;
+  } catch (error) {
+    console.error('Audio playback failed', error);
+    updatePlayerButtons();
+    setPlayerStatus('לא ניתן להפעיל את השיר. נסו ללחוץ שוב.', 'error');
+    return false;
+  }
+}
+
+async function loadTrack(index, autoplay=false) {
+  if (!state.songs.length) return false;
+
+  state.currentTrack = (Number(index) + state.songs.length) % state.songs.length;
+  const song = state.songs[state.currentTrack];
+  const audio = $('#audio-player');
+  if (!audio) return false;
+
+  const src = String(song.url || mediaUrl(song.object_key) || '').trim();
+  if (!src) {
+    setPlayerStatus('לקובץ הזה אין כתובת שמע תקינה.', 'error');
+    return false;
+  }
+
+  const wasSameTrack = audio.dataset.trackIndex === String(state.currentTrack) && audio.src;
+  if (!wasSameTrack) {
+    audio.pause();
+    audio.src = src;
+    audio.dataset.trackIndex = String(state.currentTrack);
+    audio.load();
+    const progress = $('#audio-progress');
+    if (progress) progress.value = 0;
+    setText('#current-time','0:00');
+    setText('#duration-time','0:00');
+  }
+
+  const center = $('#record-center');
+  if (center) {
+    const art = song.artwork_key || state.settings.record_center_image_key;
+    center.innerHTML = art ? `<img src="${mediaUrl(art)}" alt="${escapeHtml(song.title || 'המנון')}">` : 'GI';
+  }
+
+  setText('#track-title', song.title || song.original_name || `המנון ${state.currentTrack+1}`);
+  setText('#track-subtitle', song.caption || state.settings.camp_name || 'קעמפ גן ישראל חדרה');
+  $$('.playlist-item').forEach((item,i) => {
+    const active = i === state.currentTrack;
+    item.classList.toggle('active', active);
+    item.setAttribute('aria-current', active ? 'true' : 'false');
+  });
+
+  if ('mediaSession' in navigator) {
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: song.title || song.original_name || `המנון ${state.currentTrack+1}`,
+        artist: song.caption || state.settings.camp_name || 'קעמפ גן ישראל חדרה',
+        artwork: song.artwork_key ? [{src: mediaUrl(song.artwork_key)}] : []
+      });
+    } catch {}
+  }
+
+  setPlayerStatus('');
+  updatePlayerButtons();
+  return autoplay ? safePlay() : true;
 }
 
 function initPlayer() {
-  const audio = $('#audio-player'), player = $('#music-player'), play = $('#play-track'), progress = $('#audio-progress');
-  play.addEventListener('click',()=>{ if(!audio.src)return; audio.paused?audio.play():audio.pause(); });
-  audio.addEventListener('play',()=>{player.classList.add('playing');play.textContent='❚❚';});
-  audio.addEventListener('pause',()=>{player.classList.remove('playing');play.textContent='▶';});
-  audio.addEventListener('timeupdate',()=>{ const percent=audio.duration?audio.currentTime/audio.duration*100:0;progress.value=percent;setText('#current-time',formatTime(audio.currentTime));setText('#duration-time',formatTime(audio.duration)); });
-  audio.addEventListener('ended',()=>{ if(audio.loop)audio.play();else loadTrack(state.currentTrack+1,true); });
-  progress.addEventListener('input',()=>{if(audio.duration)audio.currentTime=Number(progress.value)/100*audio.duration;});
-  $('#prev-track').addEventListener('click',()=>loadTrack(state.currentTrack-1,true)); $('#next-track').addEventListener('click',()=>loadTrack(state.currentTrack+1,true));
-  $('#loop-track').addEventListener('click',event=>{audio.loop=!audio.loop;event.currentTarget.classList.toggle('active',audio.loop);});
-  $('#audio-volume').addEventListener('input',event=>{audio.volume=Number(event.target.value);}); audio.volume=.8;
+  const audio = $('#audio-player');
+  const player = $('#music-player');
+  const play = $('#play-track');
+  const progress = $('#audio-progress');
+  const previous = $('#prev-track');
+  const next = $('#next-track');
+  const loop = $('#loop-track');
+  const volume = $('#audio-volume');
+
+  if (!audio || !player || !play || !progress || !previous || !next || !loop) return;
+
+  audio.setAttribute('playsinline','');
+  audio.preload = 'metadata';
+
+  play.addEventListener('click', async () => {
+    if (!audio.src && state.songs.length) await loadTrack(Math.max(0,state.currentTrack), false);
+    if (!audio.src) {
+      setPlayerStatus('עדיין לא הועלה שיר לנגן.', 'error');
+      return;
+    }
+    if (audio.paused || audio.ended) await safePlay();
+    else audio.pause();
+  });
+
+  previous.addEventListener('click', () => loadTrack(state.currentTrack - 1, true));
+  next.addEventListener('click', () => loadTrack(state.currentTrack + 1, true));
+
+  loop.addEventListener('click', event => {
+    audio.loop = !audio.loop;
+    event.currentTarget.classList.toggle('active', audio.loop);
+    event.currentTarget.setAttribute('aria-pressed', String(audio.loop));
+  });
+
+  audio.addEventListener('play', updatePlayerButtons);
+  audio.addEventListener('pause', updatePlayerButtons);
+  audio.addEventListener('waiting', () => {
+    player.classList.add('is-loading');
+    setPlayerStatus('טוען את השיר...');
+  });
+  audio.addEventListener('canplay', () => {
+    player.classList.remove('is-loading');
+    if (!audio.error) setPlayerStatus('');
+    updatePlayerButtons();
+  });
+  audio.addEventListener('loadedmetadata', () => {
+    setText('#duration-time', formatTime(audio.duration));
+  });
+  audio.addEventListener('durationchange', () => {
+    setText('#duration-time', formatTime(audio.duration));
+  });
+  audio.addEventListener('timeupdate', () => {
+    const percent = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.currentTime / audio.duration * 100 : 0;
+    progress.value = String(percent);
+    setText('#current-time', formatTime(audio.currentTime));
+    setText('#duration-time', formatTime(audio.duration));
+  });
+  audio.addEventListener('ended', () => {
+    updatePlayerButtons();
+    if (!audio.loop) loadTrack(state.currentTrack + 1, true);
+  });
+  audio.addEventListener('error', () => {
+    player.classList.remove('is-loading');
+    updatePlayerButtons();
+    setPlayerStatus('השיר לא נטען. בדקו שהקובץ פורסם ונסו שוב.', 'error');
+  });
+
+  const seek = () => {
+    if (Number.isFinite(audio.duration) && audio.duration > 0) {
+      audio.currentTime = Number(progress.value) / 100 * audio.duration;
+    }
+  };
+  progress.addEventListener('input', seek);
+  progress.addEventListener('change', seek);
+
+  if (volume) {
+    const supportsAdjustableVolume = !matchMedia('(pointer:coarse)').matches;
+    volume.closest('.volume-control')?.classList.toggle('is-hidden', !supportsAdjustableVolume);
+    if (supportsAdjustableVolume) {
+      try { audio.volume = Number(volume.value); } catch {}
+      volume.addEventListener('input', event => {
+        try { audio.volume = Number(event.target.value); } catch {}
+      });
+    }
+  }
+
+  if ('mediaSession' in navigator) {
+    try {
+      navigator.mediaSession.setActionHandler('play', () => safePlay());
+      navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+      navigator.mediaSession.setActionHandler('previoustrack', () => loadTrack(state.currentTrack - 1, true));
+      navigator.mediaSession.setActionHandler('nexttrack', () => loadTrack(state.currentTrack + 1, true));
+    } catch {}
+  }
+
+  updatePlayerButtons();
 }
 
 function formatTime(seconds) { if(!Number.isFinite(seconds))return '0:00'; return `${Math.floor(seconds/60)}:${String(Math.floor(seconds%60)).padStart(2,'0')}`; }
@@ -412,47 +599,4 @@ async function boot() {stabilizeMobileViewport();
   if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 
-document.addEventListener('DOMContentLoaded',boot)
-
-document.addEventListener('DOMContentLoaded', boot); 
-
-function initFloatingHeader() {
-  const header = document.getElementById('site-header');
-  if (!header) {
-    console.error('לא נמצא האלמנט #site-header');
-    return;
-  }
-
-  let previousScroll = window.scrollY;
-  let accumulatedUp = 0;
-
-  function handleScroll() {
-    const currentScroll = Math.max(window.scrollY, 0);
-    const movement = currentScroll - previousScroll;
-
-    if (currentScroll < 80) {
-      header.classList.remove('header-hidden', 'header-floating');
-      accumulatedUp = 0;
-    } else if (movement > 3) {
-      header.classList.add('header-hidden', 'header-floating');
-      accumulatedUp = 0;
-    } else if (movement < -3) {
-      accumulatedUp += Math.abs(movement);
-
-      if (accumulatedUp >= 10) {
-        header.classList.remove('header-hidden');
-        header.classList.add('header-floating');
-      }
-    }
-
-    previousScroll = currentScroll;
-  }
-
-  window.addEventListener('scroll', handleScroll, { passive: true });
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initFloatingHeader);
-} else {
-  initFloatingHeader();
-};
+document.addEventListener('DOMContentLoaded',boot);
