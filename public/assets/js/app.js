@@ -333,6 +333,7 @@ function initForms() {
   bind('#testimonial-form','/api/testimonials',(v)=>({...v,rating:Number(v.rating)||5}),()=>setTimeout(()=>$('#testimonial-modal').close(),900));
 }
 
+
 function getPageScrollY() {
   return Math.max(
     window.pageYOffset ||
@@ -343,126 +344,153 @@ function getPageScrollY() {
   );
 }
 
-function initSmartHeader() {
+/*
+ * תפריט צף אמין ל-Safari באייפון:
+ * התפריט נמצא בזרימה הרגילה בראש העמוד.
+ * אחרי שעוברים אותו, גלילה קלה למעלה מצמידה אותו לראש המסך.
+ * גלילה למטה מחזירה אותו למקומו המקורי שמחוץ למסך.
+ */
+function initFloatingHeader() {
   const header = $('#site-header');
-  const backToTop = $('#back-to-top');
   const menuButton = $('#menu-button');
+  const backToTop = $('#back-to-top');
 
-  if (!header || header.dataset.smartHeaderReady === 'true') return;
-  header.dataset.smartHeaderReady = 'true';
+  if (!header || header.dataset.floatingHeaderReady === 'true') return;
+  header.dataset.floatingHeaderReady = 'true';
 
   let lastScrollY = getPageScrollY();
-  let direction = 0;
-  let travelled = 0;
-  let framePending = false;
+  let lastTouchY = null;
+  let frameId = 0;
 
-  const isMenuOpen = () => menuButton?.getAttribute('aria-expanded') === 'true';
-  const showHeader = () => header.classList.remove('header-hidden');
+  const headerHeight = () => Math.max(header.offsetHeight || 0, 64);
+  const topReleasePoint = () => headerHeight() + 48;
+  const menuIsOpen = () => menuButton?.getAttribute('aria-expanded') === 'true';
 
-  const updateHeader = () => {
-    framePending = false;
+  const showFloatingHeader = () => {
+    if (getPageScrollY() <= topReleasePoint()) {
+      header.classList.remove('is-floating');
+      return;
+    }
+    header.classList.add('is-floating');
+  };
+
+  const hideFloatingHeader = () => {
+    if (!menuIsOpen()) header.classList.remove('is-floating');
+  };
+
+  const updateFromScroll = () => {
+    frameId = 0;
 
     const currentScrollY = getPageScrollY();
     const delta = currentScrollY - lastScrollY;
+    const atTop = currentScrollY <= topReleasePoint();
 
     header.classList.toggle('scrolled', currentScrollY > 10);
     backToTop?.classList.toggle('visible', currentScrollY > 650);
 
-    // At the top of the page, or while the mobile menu is open, keep the header visible.
-    if (currentScrollY <= 8 || isMenuOpen()) {
-      showHeader();
-      direction = 0;
-      travelled = 0;
-      lastScrollY = currentScrollY;
-      return;
-    }
-
-    // Ignore tiny Safari scroll jitter.
-    if (Math.abs(delta) < 1) {
-      lastScrollY = currentScrollY;
-      return;
-    }
-
-    const newDirection = delta > 0 ? 1 : -1;
-    if (newDirection !== direction) {
-      direction = newDirection;
-      travelled = 0;
-    }
-
-    travelled += Math.abs(delta);
-
-    // Scrolling down: hide only after the header itself has been passed.
-    if (
-      direction > 0 &&
-      currentScrollY > Math.max(90, header.offsetHeight) &&
-      travelled >= 16
-    ) {
-      header.classList.add('header-hidden');
-      travelled = 0;
-    }
-
-    // Scrolling up even slightly: reveal immediately.
-    if (direction < 0 && travelled >= 5) {
-      showHeader();
-      travelled = 0;
+    if (atTop) {
+      header.classList.remove('is-floating');
+    } else if (menuIsOpen()) {
+      showFloatingHeader();
+    } else if (delta <= -2) {
+      showFloatingHeader();
+    } else if (delta >= 3) {
+      hideFloatingHeader();
     }
 
     lastScrollY = currentScrollY;
   };
 
-  const requestHeaderUpdate = () => {
-    if (framePending) return;
-    framePending = true;
-    window.requestAnimationFrame(updateHeader);
+  const requestScrollUpdate = () => {
+    if (frameId) return;
+    frameId = window.requestAnimationFrame(updateFromScroll);
   };
 
-  window.addEventListener('scroll', requestHeaderUpdate, { passive: true });
-  window.addEventListener('resize', requestHeaderUpdate, { passive: true });
-  window.addEventListener('orientationchange', () => {
-    showHeader();
-    window.setTimeout(() => {
-      lastScrollY = getPageScrollY();
-      requestHeaderUpdate();
-    }, 180);
+  window.addEventListener('scroll', requestScrollUpdate, { passive: true });
+
+  /*
+   * ב-iOS אירוע scroll עלול להגיע באיחור בזמן גרירה או תנופה.
+   * לכן מזהים גם ישירות את כיוון האצבע.
+   */
+  document.addEventListener('touchstart', event => {
+    lastTouchY = event.touches[0]?.clientY ?? null;
   }, { passive: true });
 
-  // Safari can restore a page from its back-forward cache without a full reload.
+  document.addEventListener('touchmove', event => {
+    const currentTouchY = event.touches[0]?.clientY;
+    if (currentTouchY == null || lastTouchY == null) return;
+
+    const fingerDelta = currentTouchY - lastTouchY;
+    const currentScrollY = getPageScrollY();
+
+    if (currentScrollY <= topReleasePoint()) {
+      header.classList.remove('is-floating');
+    } else if (menuIsOpen() || fingerDelta >= 3) {
+      showFloatingHeader();
+    } else if (fingerDelta <= -5) {
+      hideFloatingHeader();
+    }
+
+    lastTouchY = currentTouchY;
+    lastScrollY = currentScrollY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    lastTouchY = null;
+    requestScrollUpdate();
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', () => {
+    lastTouchY = null;
+  }, { passive: true });
+
+  menuButton?.addEventListener('click', () => {
+    window.setTimeout(() => {
+      if (menuIsOpen()) showFloatingHeader();
+      else requestScrollUpdate();
+    }, 0);
+  });
+
   window.addEventListener('pageshow', () => {
-    showHeader();
-    direction = 0;
-    travelled = 0;
     lastScrollY = getPageScrollY();
-    requestHeaderUpdate();
+    lastTouchY = null;
+    if (lastScrollY <= topReleasePoint()) header.classList.remove('is-floating');
+    requestScrollUpdate();
   });
 
-  document.addEventListener('focusin', event => {
-    if (header.contains(event.target)) showHeader();
-  });
+  window.addEventListener('orientationchange', () => {
+    header.classList.remove('is-floating');
+    window.setTimeout(() => {
+      lastScrollY = getPageScrollY();
+      requestScrollUpdate();
+    }, 250);
+  }, { passive: true });
 
-  showHeader();
-  updateHeader();
+  updateFromScroll();
 }
 
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-
-  const register = async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        updateViaCache: 'none'
-      });
-      await registration.update();
-    } catch (error) {
-      console.warn('Service worker registration failed', error);
+/*
+ * מסיר Service Worker ומטמונים ישנים שיכולים להשאיר באייפון
+ * גרסה קודמת של ה-CSS או ה-JavaScript.
+ */
+async function disableLegacyServiceWorker() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(registration => registration.unregister()));
     }
-  };
 
-  if (document.readyState === 'complete') register();
-  else window.addEventListener('load', register, { once: true });
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+    }
+  } catch (error) {
+    console.warn('Legacy cache cleanup failed', error);
+  }
 }
 
 function initInteractions() {
-  initSmartHeader();
+  initFloatingHeader();
 
   const header=$('#site-header'),backToTop=$('#back-to-top');
   backToTop?.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
@@ -470,13 +498,12 @@ function initInteractions() {
   const menu=$('#menu-button'),nav=$('#mobile-nav');
   if(menu&&nav){
     menu.addEventListener('click',()=>{
-      header?.classList.remove('header-hidden');
       const open=menu.classList.toggle('active');
+      if (open && getPageScrollY() > header.offsetHeight) header.classList.add('is-floating');
       nav.classList.toggle('open',open);
       menu.setAttribute('aria-expanded',String(open));
     });
     $$('#mobile-nav a').forEach(a=>a.addEventListener('click',()=>{
-      header?.classList.remove('header-hidden');
       menu.classList.remove('active');
       nav.classList.remove('open');
       menu.setAttribute('aria-expanded','false');
@@ -570,7 +597,7 @@ async function boot() {
     loader?.classList.add('loaded');
     track(location.pathname);
   }
-  registerServiceWorker();
+  disableLegacyServiceWorker();
 }
 
 document.addEventListener('DOMContentLoaded',boot);
