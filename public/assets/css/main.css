@@ -455,3 +455,28 @@ img,video,iframe,svg,canvas{
 @media(max-width:1050px){.masonry-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:720px){.masonry-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.media-tile{border-radius:13px}.media-tile-actions,.media-tile-overlay{opacity:0!important;pointer-events:none!important}}
 @media(max-width:360px){.masonry-grid{grid-template-columns:1fr}}
+/* תפריט צף בגלילה למעלה */
+#site-header {
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  transition:
+    transform 0.28s ease,
+    background-color 0.28s ease,
+    box-shadow 0.28s ease,
+    backdrop-filter 0.28s ease;
+  will-change: transform;
+}
+
+/* התפריט נעלם בגלילה למטה */
+#site-header.header-hidden {
+  transform: translateY(-110%);
+}
+
+/* מראה התפריט כשהוא צף */
+#site-header.header-floating {
+  background: rgba(11, 25, 44, 0.94);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}

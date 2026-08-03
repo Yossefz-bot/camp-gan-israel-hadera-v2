@@ -412,4 +412,60 @@ async function boot() {stabilizeMobileViewport();
   if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 
-document.addEventListener('DOMContentLoaded',boot);
+document.addEventListener('DOMContentLoaded',boot)
+
+document.addEventListener('DOMContentLoaded', boot);
+
+
+/* תפריט צף – נעלם בגלילה למטה וחוזר בגלילה למעלה */
+document.addEventListener('DOMContentLoaded', () => {
+  const header = document.getElementById('site-header');
+
+  if (!header) {
+    console.warn('לא נמצא #site-header');
+    return;
+  }
+
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+
+  const floatingPoint = 90;
+  const movementThreshold = 5;
+
+  function updateHeader() {
+    const currentScrollY = Math.max(window.scrollY, 0);
+    const difference = currentScrollY - lastScrollY;
+
+    if (currentScrollY <= floatingPoint) {
+      header.classList.remove('header-hidden', 'header-floating');
+      lastScrollY = currentScrollY;
+      ticking = false;
+      return;
+    }
+
+    header.classList.add('header-floating');
+
+    if (Math.abs(difference) >= movementThreshold) {
+      if (difference > 0) {
+        header.classList.add('header-hidden');
+      } else {
+        header.classList.remove('header-hidden');
+      }
+
+      lastScrollY = currentScrollY;
+    }
+
+    ticking = false;
+  }
+
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!ticking) {
+        requestAnimationFrame(updateHeader);
+        ticking = true;
+      }
+    },
+    { passive: true }
+  );
+});
