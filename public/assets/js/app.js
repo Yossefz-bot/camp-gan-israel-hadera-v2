@@ -414,58 +414,45 @@ async function boot() {stabilizeMobileViewport();
 
 document.addEventListener('DOMContentLoaded',boot)
 
-document.addEventListener('DOMContentLoaded', boot);
+document.addEventListener('DOMContentLoaded', boot); 
 
-
-/* תפריט צף – נעלם בגלילה למטה וחוזר בגלילה למעלה */
-document.addEventListener('DOMContentLoaded', () => {
+function initFloatingHeader() {
   const header = document.getElementById('site-header');
-
   if (!header) {
-    console.warn('לא נמצא #site-header');
+    console.error('לא נמצא האלמנט #site-header');
     return;
   }
 
-  let lastScrollY = window.scrollY;
-  let ticking = false;
+  let previousScroll = window.scrollY;
+  let accumulatedUp = 0;
 
-  const floatingPoint = 90;
-  const movementThreshold = 5;
+  function handleScroll() {
+    const currentScroll = Math.max(window.scrollY, 0);
+    const movement = currentScroll - previousScroll;
 
-  function updateHeader() {
-    const currentScrollY = Math.max(window.scrollY, 0);
-    const difference = currentScrollY - lastScrollY;
-
-    if (currentScrollY <= floatingPoint) {
+    if (currentScroll < 80) {
       header.classList.remove('header-hidden', 'header-floating');
-      lastScrollY = currentScrollY;
-      ticking = false;
-      return;
-    }
+      accumulatedUp = 0;
+    } else if (movement > 3) {
+      header.classList.add('header-hidden', 'header-floating');
+      accumulatedUp = 0;
+    } else if (movement < -3) {
+      accumulatedUp += Math.abs(movement);
 
-    header.classList.add('header-floating');
-
-    if (Math.abs(difference) >= movementThreshold) {
-      if (difference > 0) {
-        header.classList.add('header-hidden');
-      } else {
+      if (accumulatedUp >= 10) {
         header.classList.remove('header-hidden');
+        header.classList.add('header-floating');
       }
-
-      lastScrollY = currentScrollY;
     }
 
-    ticking = false;
+    previousScroll = currentScroll;
   }
 
-  window.addEventListener(
-    'scroll',
-    () => {
-      if (!ticking) {
-        requestAnimationFrame(updateHeader);
-        ticking = true;
-      }
-    },
-    { passive: true }
-  );
-});
+  window.addEventListener('scroll', handleScroll, { passive: true });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initFloatingHeader);
+} else {
+  initFloatingHeader();
+};

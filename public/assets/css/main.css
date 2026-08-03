@@ -479,4 +479,23 @@ img,video,iframe,svg,canvas{
   box-shadow: 0 10px 35px rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+#site-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 99999 !important;
+  transition:
+    transform 0.25s ease,
+    background-color 0.25s ease,
+    box-shadow 0.25s ease !important;
+}
+
+#site-header.header-hidden {
+  transform: translateY(-110%) !important;
+}
+
+#site-header.header-floating {
+  background: rgba(12, 27, 48, 0.96) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
