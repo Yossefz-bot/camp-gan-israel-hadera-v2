@@ -444,49 +444,78 @@ async function boot() {stabilizeMobileViewport();
 
 document.addEventListener('DOMContentLoaded',boot);
 
-document.addEventListener("DOMContentLoaded", function () {
-  const header = document.querySelector(".site-header");
-
-  if (!header) {
-    console.warn("לא נמצא אלמנט עם המחלקה site-header");
-    return;
-  }
-
-  let lastScrollY = window.scrollY;
-  let ticking = false;
-
-  function updateFloatingMenu() {
-    const currentScrollY = Math.max(window.scrollY, 0);
-    const isScrollingUp = currentScrollY < lastScrollY;
-    const passedHeader = currentScrollY > 120;
-
-    document.documentElement.style.setProperty(
-      "--floating-menu-height",
-      `${header.offsetHeight}px`
+(function () {
+  function startFloatingMenu() {
+    const header = document.querySelector(
+      ".site-header, .main-header, .header, .navbar, .topbar, header, nav"
     );
 
-    if (passedHeader && isScrollingUp) {
-      header.classList.add("is-floating");
-      document.body.classList.add("menu-is-floating");
-    } else if (!passedHeader || currentScrollY > lastScrollY) {
-      header.classList.remove("is-floating");
-      document.body.classList.remove("menu-is-floating");
+    if (!header) {
+      console.error("Floating menu: לא נמצא תפריט באתר");
+      return;
     }
 
-    lastScrollY = currentScrollY;
-    ticking = false;
+    const spacer = document.createElement("div");
+    spacer.className = "floating-menu-spacer";
+    header.parentNode.insertBefore(spacer, header);
+
+    let lastScrollPosition = window.pageYOffset || 0;
+    let ticking = false;
+
+    function updateMenu() {
+      const currentScrollPosition = Math.max(
+        window.pageYOffset || document.documentElement.scrollTop || 0,
+        0
+      );
+
+      const scrollingUp = currentScrollPosition < lastScrollPosition;
+      const passedMenu = currentScrollPosition > 100;
+
+      if (passedMenu) {
+        header.classList.add("floating-menu-active");
+        spacer.style.height = header.offsetHeight + "px";
+
+        if (scrollingUp) {
+          header.classList.remove("floating-menu-hidden");
+        } else {
+          header.classList.add("floating-menu-hidden");
+        }
+      } else {
+        header.classList.remove(
+          "floating-menu-active",
+          "floating-menu-hidden"
+        );
+
+        spacer.style.height = "0px";
+      }
+
+      lastScrollPosition = currentScrollPosition;
+      ticking = false;
+    }
+
+    window.addEventListener(
+      "scroll",
+      function () {
+        if (!ticking) {
+          window.requestAnimationFrame(updateMenu);
+          ticking = true;
+        }
+      },
+      { passive: true }
+    );
+
+    window.addEventListener("resize", function () {
+      if (header.classList.contains("floating-menu-active")) {
+        spacer.style.height = header.offsetHeight + "px";
+      }
+    });
+
+    updateMenu();
   }
 
-  window.addEventListener(
-    "scroll",
-    function () {
-      if (!ticking) {
-        window.requestAnimationFrame(updateFloatingMenu);
-        ticking = true;
-      }
-    },
-    { passive: true }
-  );
-
-  window.addEventListener("resize", updateFloatingMenu);
-});
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startFloatingMenu);
+  } else {
+    startFloatingMenu();
+  }
+})();
