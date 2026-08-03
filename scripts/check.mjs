@@ -7,7 +7,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const required = [
   'public/index.html','public/day.html','public/admin/index.html','public/assets/css/main.css','public/assets/css/admin.css',
   'public/assets/js/app.js','public/assets/js/day.js','public/assets/js/admin.js','functions/api/site.js','functions/api/day.js',
-  'functions/api/admin/login.js','functions/api/admin/health.js','functions/api/admin/upload.js','functions/api/admin/contacts.js','functions/api/admin/media.js','functions/api/admin/subscribers.js','functions/api/admin/slides.js','migrations/0000_initial.sql','migrations/0002_communications_and_slides.sql'
+  'functions/api/media/[[path]].js','functions/api/admin/login.js','functions/api/admin/health.js','functions/api/admin/upload.js','functions/api/admin/contacts.js','functions/api/admin/media.js','functions/api/admin/subscribers.js','functions/api/admin/slides.js','migrations/0000_initial.sql','migrations/0002_communications_and_slides.sql'
 ];
 let failed = false;
 for (const file of required) {
@@ -35,5 +35,15 @@ for (const file of walk(join(root,'functions')).filter(file => file.endsWith('.j
     if (!existsSync(target)) { console.error(`Broken import in ${file}: ${match[1]}`); failed = true; }
   }
 }
+
+const mediaRoute = readFileSync(join(root,'functions/api/media/[[path]].js'),'utf8');
+for (const token of ['onRequestHead','accept-ranges','content-range','no-transform']) {
+  if (!mediaRoute.includes(token)) { console.error(`Missing iPhone media-delivery requirement: ${token}`); failed = true; }
+}
+const publicVideoSources = ['public/assets/js/app.js','public/assets/js/day.js','public/assets/js/admin.js'].map(file => readFileSync(join(root,file),'utf8')).join('\n');
+if (!publicVideoSources.includes('webkit-playsinline')) { console.error('Missing webkit-playsinline support.'); failed = true; }
+const daySource = readFileSync(join(root,'public/assets/js/day.js'),'utf8');
+if (!daySource.includes('video-thumbnail') || !daySource.includes('mountNativeVideo')) { console.error('Missing iPhone-safe gallery video mounting.'); failed = true; }
+
 if (failed) process.exit(1);
-console.log('V12.1 WhatsApp and bulk media checks passed.');
+console.log('V16.1 iPhone video and full project checks passed.');

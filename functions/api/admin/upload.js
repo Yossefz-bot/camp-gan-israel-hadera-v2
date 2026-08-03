@@ -3,7 +3,7 @@ import { requireAdmin } from './_auth.js';
 
 const ALLOWED_MIME = new Map([
   ['image/jpeg','image'],['image/png','image'],['image/webp','image'],['image/gif','image'],['image/avif','image'],
-  ['video/mp4','video'],['video/webm','video'],['video/quicktime','video'],
+  ['video/mp4','video'],['video/x-m4v','video'],['application/mp4','video'],['video/webm','video'],['video/quicktime','video'],
   ['audio/mpeg','audio'],['audio/mp4','audio'],['audio/wav','audio'],['audio/x-wav','audio'],['audio/ogg','audio'],
   ['application/pdf','document']
 ]);
@@ -51,7 +51,10 @@ export async function onRequestPost({ request, env }) {
         ]);
       }
       await audit(env, 'upload_media', 'media', String(result.meta.last_row_id), file.name);
-      return json({ ok: true, item: { id: result.meta.last_row_id, object_key: key, url: `/api/media/${key.split('/').map(encodeURIComponent).join('/')}`, kind, title, original_name: file.name, size_bytes: file.size } });
+      const warning = kind === 'video' && !['video/mp4','video/x-m4v','application/mp4','video/quicktime'].includes(file.type)
+        ? 'לתאימות מלאה באייפון מומלץ להעלות סרטון MP4 בקידוד H.264 עם שמע AAC.'
+        : '';
+      return json({ ok: true, warning, item: { id: result.meta.last_row_id, object_key: key, url: `/api/media/${key.split('/').map(encodeURIComponent).join('/')}`, kind, title, original_name: file.name, size_bytes: file.size } });
     } catch (error) {
       await env.MEDIA.delete(key).catch(() => null);
       throw error;

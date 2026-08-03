@@ -1,10 +1,10 @@
 {
-  "name": "camp-gan-israel-hadera-v16-1",
+  "name": "camp-gan-israel-hadera-v16-1-iphone-video",
   "version": "16.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/check.mjs",
+    "check": "node scripts/check.mjs && node scripts/test-media-route.mjs",
     "dev": "npx wrangler pages dev public",
     "deploy": "npx wrangler pages deploy public"
   },

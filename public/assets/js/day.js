@@ -9,12 +9,46 @@ function setText(s,v){const n=$(s);if(n)n.textContent=v??''}
 function saveFavorites(){localStorage.setItem('camp-favorites',JSON.stringify([...state.favorites]));updateCounts()}
 function updateCounts(){setText('#favorites-count',state.favorites.size)}
 function formatDate(value){if(!value)return'';const d=new Date(`${value}T12:00:00`);return Number.isNaN(d.getTime())?value:new Intl.DateTimeFormat('he-IL',{day:'numeric',month:'long',year:'numeric'}).format(d)}
-function videoEmbed(src,aspect='landscape'){
-  const wrapClass=aspect==='portrait'?'portrait':aspect==='square'?'square':'';
-  const youtube=src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);const vimeo=src.match(/vimeo\.com\/(\d+)/);
-  if(youtube)return `<div class="day-video-wrap ${wrapClass}"><iframe src="https://www.youtube-nocookie.com/embed/${youtube[1]}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="סרטון היום"></iframe></div>`;
-  if(vimeo)return `<div class="day-video-wrap ${wrapClass}"><iframe src="https://player.vimeo.com/video/${vimeo[1]}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="סרטון היום"></iframe></div>`;
-  return `<div class="day-video-wrap ${wrapClass}"><video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video></div>`;
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function videoProvider(src){
+  const text=String(src||'').trim();
+  const youtube=text.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]+)/i);
+  const vimeo=text.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+  if(youtube)return {kind:'iframe',src:`https://www.youtube-nocookie.com/embed/${youtube[1]}?playsinline=1&rel=0`};
+  if(vimeo)return {kind:'iframe',src:`https://player.vimeo.com/video/${vimeo[1]}`};
+  return {kind:'native',src:text};
+}
+function videoFallback(src,message='לא הצלחנו להפעיל את הסרטון במכשיר הזה.'){
+  const box=document.createElement('div');
+  box.className='video-playback-fallback is-hidden';
+  const text=document.createElement('p');text.textContent=message;
+  const link=document.createElement('a');link.className='button button-light';link.href=src;link.target='_blank';link.rel='noopener';link.textContent='פתיחת הסרטון בנגן המכשיר';
+  box.append(text,link);return box;
+}
+function mountNativeVideo(container,src,{poster='',muted=false,loop=false,autoplay=false,label='סרטון'}={}){
+  if(!container||!src)return null;
+  container.replaceChildren();
+  const video=document.createElement('video');
+  video.controls=true;
+  video.preload='metadata';
+  video.playsInline=true;
+  video.setAttribute('playsinline','');
+  video.setAttribute('webkit-playsinline','');
+  video.setAttribute('x-webkit-airplay','allow');
+  video.setAttribute('controlslist','nodownload');
+  video.setAttribute('aria-label',label);
+  video.muted=Boolean(muted);
+  video.loop=Boolean(loop);
+  if(poster)video.poster=poster;
+  video.src=src;
+  const fallback=videoFallback(src);
+  const showError=()=>fallback.classList.remove('is-hidden');
+  video.addEventListener('loadedmetadata',()=>fallback.classList.add('is-hidden'),{once:true});
+  video.addEventListener('error',showError);
+  container.append(video,fallback);
+  video.load();
+  if(autoplay&&!isIOS){video.play().catch(()=>{});}
+  return video;
 }
 function showSummaryVideo(src,aspect='landscape'){
   if(!src)return;
@@ -23,11 +57,12 @@ function showSummaryVideo(src,aspect='landscape'){
   state.summaryVideoSrc=String(src);
   section.classList.remove('is-hidden');
   wrap.className=`day-video-wrap ${aspect==='portrait'?'portrait':aspect==='square'?'square':''}`;
-  const embedded=videoEmbed(src,aspect);
-  const temp=document.createElement('div');
-  temp.innerHTML=embedded;
-  const nested=temp.querySelector('.day-video-wrap');
-  wrap.innerHTML=nested?nested.innerHTML:embedded;
+  const provider=videoProvider(src);
+  if(provider.kind==='iframe'){
+    wrap.innerHTML=`<iframe src="${escapeHtml(provider.src)}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="סרטון היום"></iframe>`;
+    return;
+  }
+  mountNativeVideo(wrap,provider.src,{label:'סרטון הסיכום'});
 }
 function renderDay(day,total){
   state.day=day;
@@ -94,7 +129,9 @@ function galleryItems(){
 
 function tile(item,index){
   const fav=state.favorites.has(item.id);const title=item.title||item.original_name||'רגע מהקעמפ';
-  const media=item.kind==='video'?`<video src="${item.url}" muted preload="metadata" playsinline></video>`:`<img src="${item.url}" alt="${escapeHtml(item.alt_text||title)}" loading="lazy">`;
+  const media=item.kind==='video'
+    ? `<div class="video-thumbnail" aria-hidden="true"><span>🎬</span></div>`
+    : `<img src="${item.url}" alt="${escapeHtml(item.alt_text||title)}" loading="lazy">`;
   return `<article class="media-tile ${item.kind==='video'?'video-tile':''} ${fav?'favorite':''}" data-id="${item.id}" data-index="${index}">${media}<div class="media-tile-overlay"></div><div class="media-tile-actions"><strong>${escapeHtml(title)}</strong><span class="media-tile-buttons"><button class="favorite-button" aria-label="מועדפים">♥</button></span></div></article>`;
 }
 function applyFilter(){
@@ -112,14 +149,40 @@ function bindTiles(){
   });
 }
 function toggleFavorite(id){state.favorites.has(id)?state.favorites.delete(id):state.favorites.add(id);saveFavorites();applyFilter()}
-function openLightbox(index){state.lightboxIndex=index;renderLightbox();const dialog=$('#lightbox');if(dialog&&typeof dialog.showModal==='function')dialog.showModal()}
-function renderLightbox(){const item=state.visible[state.lightboxIndex];if(!item)return;const stage=$('#lightbox-stage');if(!stage)return;stage.innerHTML=item.kind==='video'?`<video src="${item.url}" controls autoplay playsinline></video>`:`<img src="${item.url}" alt="${escapeHtml(item.alt_text||item.title||'')}">`;setText('#lightbox-title',item.title||item.original_name);setText('#lightbox-caption',item.caption||'');const favorite=$('#lightbox-favorite');if(favorite)favorite.classList.toggle('active',state.favorites.has(item.id));}
+function stopStageVideo(){
+  const video=$('#lightbox-stage video');
+  if(!video)return;
+  try{video.pause();video.removeAttribute('src');video.load()}catch{}
+}
+function openLightbox(index){
+  state.lightboxIndex=index;
+  const dialog=$('#lightbox');
+  if(dialog&&typeof dialog.showModal==='function'&&!dialog.open)dialog.showModal();
+  renderLightbox();
+}
+function renderLightbox(){
+  const item=state.visible[state.lightboxIndex];if(!item)return;
+  const stage=$('#lightbox-stage');if(!stage)return;
+  stopStageVideo();stage.replaceChildren();
+  if(item.kind==='video'){
+    mountNativeVideo(stage,item.url,{label:item.title||item.original_name||'סרטון מהקעמפ'});
+  }else{
+    const image=document.createElement('img');image.src=item.url;image.alt=item.alt_text||item.title||'';stage.append(image);
+  }
+  setText('#lightbox-title',item.title||item.original_name);setText('#lightbox-caption',item.caption||'');
+  const favorite=$('#lightbox-favorite');if(favorite)favorite.classList.toggle('active',state.favorites.has(item.id));
+}
 function moveLightbox(delta){if(!state.visible.length)return;state.lightboxIndex=(state.lightboxIndex+delta+state.visible.length)%state.visible.length;renderLightbox()}
 function initLightbox(){
   const dialog=$('#lightbox'),close=$('#lightbox-close'),prev=$('#lightbox-prev'),next=$('#lightbox-next'),favorite=$('#lightbox-favorite'),stage=$('#lightbox-stage');
   if(!dialog||!stage)return;
-  if(close)close.onclick=()=>dialog.close();if(prev)prev.onclick=()=>moveLightbox(-1);if(next)next.onclick=()=>moveLightbox(1);if(favorite)favorite.onclick=()=>{const item=state.visible[state.lightboxIndex];if(!item)return;toggleFavorite(item.id);renderLightbox()};
-  dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()});document.addEventListener('keydown',e=>{if(!dialog.open)return;if(e.key==='ArrowLeft')moveLightbox(1);if(e.key==='ArrowRight')moveLightbox(-1);if(e.key==='Escape')dialog.close()});
+  if(close)close.onclick=()=>dialog.close();
+  if(prev)prev.onclick=()=>moveLightbox(-1);
+  if(next)next.onclick=()=>moveLightbox(1);
+  if(favorite)favorite.onclick=()=>{const item=state.visible[state.lightboxIndex];if(!item)return;toggleFavorite(item.id);renderLightbox()};
+  dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()});
+  dialog.addEventListener('close',()=>{stopStageVideo();stage.replaceChildren()});
+  document.addEventListener('keydown',e=>{if(!dialog.open)return;if(e.key==='ArrowLeft')moveLightbox(1);if(e.key==='ArrowRight')moveLightbox(-1);if(e.key==='Escape')dialog.close()});
   let startX=0;stage.addEventListener('touchstart',e=>startX=e.touches[0]?.clientX||0,{passive:true});stage.addEventListener('touchend',e=>{const diff=(e.changedTouches[0]?.clientX||0)-startX;if(Math.abs(diff)>55)moveLightbox(diff>0?-1:1)},{passive:true});
 }
 async function loadMedia(reset=false){

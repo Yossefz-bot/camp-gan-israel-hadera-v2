@@ -1,4 +1,5 @@
 const state = { settings: {}, days: [], songs: [], testimonials: [], heroSlides: [], heroSlideIndex: 0, heroSlideTimer: null, currentTrack: -1, filter: 'all', query: '' };
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -74,6 +75,26 @@ function homepageVideoEmbedUrl(url, autoplay = false, loop = false, controls = t
   return text;
 }
 
+function createPublicVideo(src,{poster='',autoplay=false,loop=false,controls=true,muted=false,label='סרטון'}={}) {
+  const video=document.createElement('video');
+  video.src=src;
+  video.preload='metadata';
+  video.playsInline=true;
+  video.setAttribute('playsinline','');
+  video.setAttribute('webkit-playsinline','');
+  video.setAttribute('x-webkit-airplay','allow');
+  video.setAttribute('controlslist','nodownload');
+  video.setAttribute('aria-label',label);
+  video.controls=Boolean(controls||isIOS);
+  video.muted=Boolean(muted||autoplay);
+  video.loop=Boolean(loop);
+  if(poster)video.poster=poster;
+  if(autoplay&&!isIOS)video.autoplay=true;
+  video.addEventListener('error',()=>video.closest('.has-video,.hero-slide')?.classList.add('video-load-error'));
+  video.load();
+  return video;
+}
+
 function homepageMediaType(slot, settings) {
   const configured = settings[`${slot}_media_type`];
   if (['image','video','slideshow'].includes(configured)) return configured;
@@ -105,9 +126,11 @@ function renderHomepageMedia(slot, node, settings) {
     const embed = homepageVideoEmbedUrl(videoSource, autoplay, loop, controls);
     const isEmbed = /youtube(?:-nocookie)?\.com\/embed|player\.vimeo\.com\/video/.test(embed);
     node.classList.add('has-video');
-    node.innerHTML = isEmbed
-      ? `<iframe src="${escapeHtml(embed)}" title="${escapeHtml(title)}" allow="autoplay; fullscreen; picture-in-picture" loading="${slot === 'hero' ? 'eager' : 'lazy'}" allowfullscreen></iframe>`
-      : `<video src="${escapeHtml(videoSource)}" ${poster ? `poster="${escapeHtml(poster)}"` : ''} ${autoplay ? 'autoplay muted' : ''} ${loop ? 'loop' : ''} ${controls ? 'controls' : ''} playsinline preload="metadata" aria-label="${escapeHtml(title)}"></video>`;
+    if(isEmbed){
+      node.innerHTML=`<iframe src="${escapeHtml(embed)}" title="${escapeHtml(title)}" allow="autoplay; fullscreen; picture-in-picture" loading="${slot === 'hero' ? 'eager' : 'lazy'}" allowfullscreen></iframe>`;
+    }else{
+      node.replaceChildren(createPublicVideo(videoSource,{poster,autoplay,loop,controls,muted:autoplay,label:title}));
+    }
     return;
   }
   node.classList.remove('has-image','has-video','has-slideshow');
@@ -129,13 +152,14 @@ function renderHeroSlideshow(node, slides, title) {
   const items = published.length ? published : slides;
   node.innerHTML = `<div class="hero-slides">${items.map((slide,index)=>{
     const label=escapeHtml(slide.alt_text||slide.title||title||`שקופית ${index+1}`);
-    if(slide.kind==='video')return `<div class="hero-slide" data-slide-index="${index}"><video src="${escapeHtml(slide.url||mediaUrl(slide.object_key))}" ${slide.poster_url?`poster="${escapeHtml(slide.poster_url)}"`:''} muted playsinline preload="metadata" ${Number(slide.loop)?'loop':''} ${Number(slide.controls)?'controls':''} aria-label="${label}"></video></div>`;
+    if(slide.kind==='video')return `<div class="hero-slide" data-slide-index="${index}"><video src="${escapeHtml(slide.url||mediaUrl(slide.object_key))}" ${slide.poster_url?`poster="${escapeHtml(slide.poster_url)}"`:''} muted playsinline webkit-playsinline x-webkit-airplay="allow" preload="none" ${Number(slide.loop)?'loop':''} ${Number(slide.controls)||isIOS?'controls':''} aria-label="${label}"></video></div>`;
     return `<div class="hero-slide" data-slide-index="${index}"><img src="${escapeHtml(slide.url||mediaUrl(slide.object_key))}" alt="${label}" ${index===0?'fetchpriority="high"':'loading="lazy"'}></div>`;
   }).join('')}</div>${items.length>1?`<button class="hero-slide-nav hero-slide-prev" type="button" aria-label="המדיה הקודמת">‹</button><button class="hero-slide-nav hero-slide-next" type="button" aria-label="המדיה הבאה">›</button><div class="hero-slide-dots">${items.map((_,i)=>`<button type="button" data-hero-dot="${i}" aria-label="מעבר לשקופית ${i+1}"></button>`).join('')}</div>`:''}`;
   const slideNodes=$$('.hero-slide',node),dots=$$('[data-hero-dot]',node);
   const activate=(index,manual=false)=>{
     clearHeroSlideTimer();state.heroSlideIndex=(index+items.length)%items.length;
-    slideNodes.forEach((slide,i)=>{const active=i===state.heroSlideIndex;slide.classList.toggle('active',active);const video=$('video',slide);if(video){if(active&&Number(items[i].autoplay)!==0)video.play().catch(()=>{});else if(!active){video.pause();video.currentTime=0}}});
+    slideNodes.forEach((slide,i)=>slide.classList.toggle('active',i===state.heroSlideIndex));
+    slideNodes.forEach((slide,i)=>{const video=$('video',slide);if(!video)return;const active=i===state.heroSlideIndex;if(active){video.preload='metadata';video.load();if(!isIOS&&Number(items[i].autoplay)!==0)video.play().catch(()=>{})}else{video.pause();try{video.currentTime=0}catch{}video.preload='none'}});
     dots.forEach((dot,i)=>dot.classList.toggle('active',i===state.heroSlideIndex));
     if(items.length>1&&!document.hidden){const seconds=Math.min(60,Math.max(2,Number(items[state.heroSlideIndex].duration_seconds||6)));state.heroSlideTimer=setTimeout(()=>activate(state.heroSlideIndex+1),seconds*1000)}
   };
@@ -262,215 +286,34 @@ function renderTestimonials(items) {
 }
 
 function renderSongs(songs) {
-  state.songs = Array.isArray(songs) ? songs : [];
+  state.songs = songs;
   const list = $('#playlist');
-  if (!list) return;
-
-  if (!state.songs.length) {
-    list.innerHTML = '<div class="playlist-empty"><span>🎵</span><p>ההמנונים יופיעו כאן לאחר ההעלאה.</p></div>';
-    setText('#player-status','');
-    return;
-  }
-
-  list.innerHTML = state.songs.map((song,index) => `<button type="button" class="playlist-item" data-track="${index}" aria-label="ניגון ${escapeHtml(song.title || song.original_name || `המנון ${index+1}`)}"><span class="playlist-number">${index+1}</span><span class="playlist-copy"><strong>${escapeHtml(song.title || song.original_name || `המנון ${index+1}`)}</strong><small>${escapeHtml(song.caption || 'קעמפ גן ישראל חדרה')}</small></span><span class="playlist-play" aria-hidden="true">▶</span></button>`).join('');
-
-  $$('.playlist-item', list).forEach(button => {
-    button.addEventListener('click', async () => {
-      await loadTrack(Number(button.dataset.track), true);
-    });
-  });
-
+  if (!songs.length) return;
+  list.innerHTML = songs.map((song,index) => `<button class="playlist-item" data-track="${index}"><span class="playlist-number">${index+1}</span><span class="playlist-copy"><strong>${escapeHtml(song.title || song.original_name || `המנון ${index+1}`)}</strong><small>${escapeHtml(song.caption || 'קעמפ גן ישראל חדרה')}</small></span><span>▶</span></button>`).join('');
+  $$('.playlist-item', list).forEach(button => button.addEventListener('click', () => loadTrack(Number(button.dataset.track), true)));
   loadTrack(0, false);
 }
 
-function setPlayerStatus(message='', type='') {
-  const status = $('#player-status');
-  if (!status) return;
-  status.textContent = message;
-  status.className = `player-status${type ? ` ${type}` : ''}`;
-}
-
-function updatePlayerButtons() {
-  const audio = $('#audio-player');
-  const play = $('#play-track');
-  const player = $('#music-player');
-  if (!audio || !play || !player) return;
-
-  const playing = !audio.paused && !audio.ended;
-  player.classList.toggle('playing', playing);
-  player.classList.toggle('is-loading', audio.readyState < 3 && !audio.paused);
-  play.textContent = playing ? '❚❚' : '▶';
-  play.setAttribute('aria-label', playing ? 'השהיה' : 'ניגון');
-}
-
-async function safePlay() {
-  const audio = $('#audio-player');
-  if (!audio) return false;
-
-  try {
-    setPlayerStatus('טוען את השיר...');
-    await audio.play();
-    setPlayerStatus('');
-    return true;
-  } catch (error) {
-    console.error('Audio playback failed', error);
-    updatePlayerButtons();
-    setPlayerStatus('לא ניתן להפעיל את השיר. נסו ללחוץ שוב.', 'error');
-    return false;
-  }
-}
-
-async function loadTrack(index, autoplay=false) {
-  if (!state.songs.length) return false;
-
-  state.currentTrack = (Number(index) + state.songs.length) % state.songs.length;
-  const song = state.songs[state.currentTrack];
-  const audio = $('#audio-player');
-  if (!audio) return false;
-
-  const src = String(song.url || mediaUrl(song.object_key) || '').trim();
-  if (!src) {
-    setPlayerStatus('לקובץ הזה אין כתובת שמע תקינה.', 'error');
-    return false;
-  }
-
-  const wasSameTrack = audio.dataset.trackIndex === String(state.currentTrack) && audio.src;
-  if (!wasSameTrack) {
-    audio.pause();
-    audio.src = src;
-    audio.dataset.trackIndex = String(state.currentTrack);
-    audio.load();
-    const progress = $('#audio-progress');
-    if (progress) progress.value = 0;
-    setText('#current-time','0:00');
-    setText('#duration-time','0:00');
-  }
-
-  const center = $('#record-center');
-  if (center) {
-    const art = song.artwork_key || state.settings.record_center_image_key;
-    center.innerHTML = art ? `<img src="${mediaUrl(art)}" alt="${escapeHtml(song.title || 'המנון')}">` : 'GI';
-  }
-
-  setText('#track-title', song.title || song.original_name || `המנון ${state.currentTrack+1}`);
-  setText('#track-subtitle', song.caption || state.settings.camp_name || 'קעמפ גן ישראל חדרה');
-  $$('.playlist-item').forEach((item,i) => {
-    const active = i === state.currentTrack;
-    item.classList.toggle('active', active);
-    item.setAttribute('aria-current', active ? 'true' : 'false');
-  });
-
-  if ('mediaSession' in navigator) {
-    try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: song.title || song.original_name || `המנון ${state.currentTrack+1}`,
-        artist: song.caption || state.settings.camp_name || 'קעמפ גן ישראל חדרה',
-        artwork: song.artwork_key ? [{src: mediaUrl(song.artwork_key)}] : []
-      });
-    } catch {}
-  }
-
-  setPlayerStatus('');
-  updatePlayerButtons();
-  return autoplay ? safePlay() : true;
+function loadTrack(index, autoplay) {
+  if (!state.songs.length) return;
+  state.currentTrack = (index + state.songs.length) % state.songs.length;
+  const song = state.songs[state.currentTrack], audio = $('#audio-player');
+  audio.src = song.url || mediaUrl(song.object_key);const center=$('#record-center');if(center){const art=song.artwork_key||state.settings.record_center_image_key;center.innerHTML=art?`<img src="${mediaUrl(art)}" alt="${escapeHtml(song.title||'המנון')}">`:'GI';} setText('#track-title', song.title || song.original_name || `המנון ${state.currentTrack+1}`); setText('#track-subtitle', song.caption || state.settings.camp_name);
+  $$('.playlist-item').forEach((item,i)=>item.classList.toggle('active',i===state.currentTrack));
+  if (autoplay) audio.play().catch(()=>{});
 }
 
 function initPlayer() {
-  const audio = $('#audio-player');
-  const player = $('#music-player');
-  const play = $('#play-track');
-  const progress = $('#audio-progress');
-  const previous = $('#prev-track');
-  const next = $('#next-track');
-  const loop = $('#loop-track');
-  const volume = $('#audio-volume');
-
-  if (!audio || !player || !play || !progress || !previous || !next || !loop) return;
-
-  audio.setAttribute('playsinline','');
-  audio.preload = 'metadata';
-
-  play.addEventListener('click', async () => {
-    if (!audio.src && state.songs.length) await loadTrack(Math.max(0,state.currentTrack), false);
-    if (!audio.src) {
-      setPlayerStatus('עדיין לא הועלה שיר לנגן.', 'error');
-      return;
-    }
-    if (audio.paused || audio.ended) await safePlay();
-    else audio.pause();
-  });
-
-  previous.addEventListener('click', () => loadTrack(state.currentTrack - 1, true));
-  next.addEventListener('click', () => loadTrack(state.currentTrack + 1, true));
-
-  loop.addEventListener('click', event => {
-    audio.loop = !audio.loop;
-    event.currentTarget.classList.toggle('active', audio.loop);
-    event.currentTarget.setAttribute('aria-pressed', String(audio.loop));
-  });
-
-  audio.addEventListener('play', updatePlayerButtons);
-  audio.addEventListener('pause', updatePlayerButtons);
-  audio.addEventListener('waiting', () => {
-    player.classList.add('is-loading');
-    setPlayerStatus('טוען את השיר...');
-  });
-  audio.addEventListener('canplay', () => {
-    player.classList.remove('is-loading');
-    if (!audio.error) setPlayerStatus('');
-    updatePlayerButtons();
-  });
-  audio.addEventListener('loadedmetadata', () => {
-    setText('#duration-time', formatTime(audio.duration));
-  });
-  audio.addEventListener('durationchange', () => {
-    setText('#duration-time', formatTime(audio.duration));
-  });
-  audio.addEventListener('timeupdate', () => {
-    const percent = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.currentTime / audio.duration * 100 : 0;
-    progress.value = String(percent);
-    setText('#current-time', formatTime(audio.currentTime));
-    setText('#duration-time', formatTime(audio.duration));
-  });
-  audio.addEventListener('ended', () => {
-    updatePlayerButtons();
-    if (!audio.loop) loadTrack(state.currentTrack + 1, true);
-  });
-  audio.addEventListener('error', () => {
-    player.classList.remove('is-loading');
-    updatePlayerButtons();
-    setPlayerStatus('השיר לא נטען. בדקו שהקובץ פורסם ונסו שוב.', 'error');
-  });
-
-  const seek = () => {
-    if (Number.isFinite(audio.duration) && audio.duration > 0) {
-      audio.currentTime = Number(progress.value) / 100 * audio.duration;
-    }
-  };
-  progress.addEventListener('input', seek);
-  progress.addEventListener('change', seek);
-
-  if (volume) {
-    const supportsAdjustableVolume = !matchMedia('(pointer:coarse)').matches;
-    volume.closest('.volume-control')?.classList.toggle('is-hidden', !supportsAdjustableVolume);
-    if (supportsAdjustableVolume) {
-      try { audio.volume = Number(volume.value); } catch {}
-      volume.addEventListener('input', event => {
-        try { audio.volume = Number(event.target.value); } catch {}
-      });
-    }
-  }
-
-  if ('mediaSession' in navigator) {
-    try {
-      navigator.mediaSession.setActionHandler('play', () => safePlay());
-      navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-      navigator.mediaSession.setActionHandler('previoustrack', () => loadTrack(state.currentTrack - 1, true));
-      navigator.mediaSession.setActionHandler('nexttrack', () => loadTrack(state.currentTrack + 1, true));
-    } catch {}
-  }
-
-  updatePlayerButtons();
+  const audio = $('#audio-player'), player = $('#music-player'), play = $('#play-track'), progress = $('#audio-progress');
+  play.addEventListener('click',()=>{ if(!audio.src)return; audio.paused?audio.play():audio.pause(); });
+  audio.addEventListener('play',()=>{player.classList.add('playing');play.textContent='❚❚';});
+  audio.addEventListener('pause',()=>{player.classList.remove('playing');play.textContent='▶';});
+  audio.addEventListener('timeupdate',()=>{ const percent=audio.duration?audio.currentTime/audio.duration*100:0;progress.value=percent;setText('#current-time',formatTime(audio.currentTime));setText('#duration-time',formatTime(audio.duration)); });
+  audio.addEventListener('ended',()=>{ if(audio.loop)audio.play();else loadTrack(state.currentTrack+1,true); });
+  progress.addEventListener('input',()=>{if(audio.duration)audio.currentTime=Number(progress.value)/100*audio.duration;});
+  $('#prev-track').addEventListener('click',()=>loadTrack(state.currentTrack-1,true)); $('#next-track').addEventListener('click',()=>loadTrack(state.currentTrack+1,true));
+  $('#loop-track').addEventListener('click',event=>{audio.loop=!audio.loop;event.currentTarget.classList.toggle('active',audio.loop);});
+  $('#audio-volume').addEventListener('input',event=>{audio.volume=Number(event.target.value);}); audio.volume=.8;
 }
 
 function formatTime(seconds) { if(!Number.isFinite(seconds))return '0:00'; return `${Math.floor(seconds/60)}:${String(Math.floor(seconds%60)).padStart(2,'0')}`; }

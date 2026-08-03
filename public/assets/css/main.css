@@ -604,201 +604,80 @@ img,video,iframe,svg,canvas{
 @media(max-width:720px){.masonry-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}.media-tile-actions,.media-tile-overlay{display:none!important}}
 @media(max-width:360px){.masonry-grid{grid-template-columns:1fr!important}}
 
-
 /* =========================================================
-   V16.1 — נגן מובייל יציב
+   V16.1 — נגן וידאו יציב באייפון
    ========================================================= */
-.music-player{
-  min-width:0;
-}
-.record{
+.day-video-wrap,
+.lightbox-stage{
   position:relative;
 }
-.player-main{
+.day-video-wrap video,
+.lightbox-stage video,
+.hero-media video,
+.story-photo video,
+.hero-slide video{
+  -webkit-user-select:none;
+  user-select:none;
+  touch-action:manipulation;
+}
+.video-thumbnail{
   width:100%;
-  min-width:0;
-}
-.progress-wrap{
-  min-width:0;
-}
-.progress-wrap input{
-  min-width:0;
-  touch-action:pan-x;
-}
-.player-controls button{
+  height:100%;
   display:grid;
   place-items:center;
-  flex:0 0 auto;
-  padding:0;
-  line-height:1;
-  -webkit-tap-highlight-color:transparent;
-  touch-action:manipulation;
+  background:
+    radial-gradient(circle at 50% 45%,rgba(255,255,255,.12),transparent 32%),
+    linear-gradient(135deg,#0c2645,#07172b 65%,#173b67);
+  color:#fff;
 }
-.player-controls button:disabled{
-  opacity:.5;
-  cursor:not-allowed;
+.video-thumbnail span{
+  font-size:42px;
+  filter:drop-shadow(0 8px 14px rgba(0,0,0,.35));
 }
-.playlist-item{
-  touch-action:manipulation;
-  -webkit-tap-highlight-color:transparent;
-}
-.playlist-play{
-  width:28px;
-  height:28px;
-  border-radius:50%;
-  display:grid;
-  place-items:center;
-  background:rgba(255,255,255,.08);
-  font-size:10px;
-}
-.playlist-item.active .playlist-play{
-  background:var(--primary);
-}
-.player-status{
-  min-height:20px;
-  margin:10px 0 0;
-  color:rgba(255,255,255,.72);
-  font-size:12px;
+.video-playback-fallback{
+  position:absolute;
+  z-index:8;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:24px;
   text-align:center;
+  color:#fff;
+  background:rgba(5,14,27,.94);
 }
-.player-status.error{
-  color:#ffd4d4;
+.video-playback-fallback p{
+  margin:0;
+  max-width:420px;
+  line-height:1.7;
 }
-.music-player.is-loading .play-button{
-  font-size:0;
+.video-playback-fallback .button{
+  min-height:44px;
 }
-.music-player.is-loading .play-button:after{
-  content:"";
-  width:20px;
-  height:20px;
-  border:3px solid rgba(255,255,255,.38);
-  border-top-color:#fff;
-  border-radius:50%;
-  animation:playerSpinner .75s linear infinite;
+.hero-media.video-load-error::after,
+.story-photo.video-load-error::after,
+.hero-slide.video-load-error::after{
+  content:"לא ניתן להפעיל את הסרטון במכשיר הזה";
+  position:absolute;
+  z-index:5;
+  inset:auto 12px 12px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(5,14,27,.88);
+  color:#fff;
+  text-align:center;
+  font-size:13px;
+  font-weight:800;
 }
-@keyframes playerSpinner{to{transform:rotate(360deg)}}
-
-@media(max-width:640px){
-  .songs-section .container{
-    width:min(100% - 20px,var(--container));
-  }
-  .music-player{
-    display:grid!important;
-    grid-template-columns:1fr!important;
-    gap:16px!important;
+@supports (-webkit-touch-callout:none){
+  .day-video-wrap video,
+  .lightbox-stage video{
     width:100%!important;
-    padding:18px 14px!important;
-    border-radius:24px!important;
-    overflow:hidden!important;
-  }
-  .album-art{
-    height:132px!important;
-  }
-  .record{
-    width:122px!important;
-    height:122px!important;
-    max-width:none!important;
-    max-height:none!important;
-    box-shadow:0 12px 30px rgba(0,0,0,.32);
-  }
-  .record:before{
-    width:58px;
-    height:58px;
-    box-shadow:inset 0 0 0 5px var(--accent);
-  }
-  .record span#record-center{
-    width:50px!important;
-    height:50px!important;
-    font-size:13px;
-  }
-  .music-note{
-    display:none;
-  }
-  .now-playing{
-    text-align:center;
-    min-width:0;
-  }
-  .now-playing h3{
-    margin-top:4px;
-    font-size:24px!important;
-    line-height:1.2;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-  .now-playing small{
-    display:block;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-  .progress-wrap{
-    width:100%;
-    grid-template-columns:38px minmax(0,1fr) 38px!important;
-    gap:7px!important;
-    margin:20px 0 14px!important;
-    font-size:11px;
-  }
-  .progress-wrap input{
-    width:100%;
-    height:32px;
-    margin:0;
-  }
-  .player-controls{
-    display:grid!important;
-    grid-template-columns:repeat(4,52px)!important;
-    justify-content:center!important;
-    align-items:center!important;
-    gap:9px!important;
-    width:100%;
-    direction:ltr;
-  }
-  .player-controls button{
-    width:52px!important;
-    height:52px!important;
-    font-size:18px;
-  }
-  .player-controls .play-button{
-    width:52px!important;
-    height:52px!important;
-    font-size:20px;
-  }
-  .volume-control{
-    display:none!important;
-  }
-  .playlist{
-    grid-column:1!important;
-    display:grid!important;
-    grid-template-columns:1fr!important;
-    width:100%;
-    max-height:300px!important;
-    padding:0 0 0 3px!important;
-    overflow-y:auto;
-    overscroll-behavior:contain;
-    -webkit-overflow-scrolling:touch;
-  }
-  .playlist-item{
-    min-height:56px;
-    padding:9px 8px!important;
-    border-radius:13px;
-  }
-  .playlist-number{
-    width:34px;
-    height:34px;
-  }
-}
-
-@media(max-width:360px){
-  .music-player{
-    padding-inline:10px!important;
-  }
-  .player-controls{
-    grid-template-columns:repeat(4,48px)!important;
-    gap:6px!important;
-  }
-  .player-controls button,
-  .player-controls .play-button{
-    width:48px!important;
-    height:48px!important;
+    height:100%!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    object-fit:contain!important;
   }
 }
