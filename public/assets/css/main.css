@@ -680,4 +680,38 @@ img,video,iframe,svg,canvas{
     max-height:100%!important;
     object-fit:contain!important;
   }
+/* תפריט צף – כולל תמיכה באייפון */
+.site-header {
+  position: relative;
+  width: 100%;
+  z-index: 99999;
+}
+
+.site-header.is-floating {
+  position: fixed !important;
+  top: 0;
+  top: env(safe-area-inset-top, 0);
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 5px 22px rgba(17, 26, 52, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: floatingMenuIn 0.25s ease;
+}
+
+body.menu-is-floating {
+  padding-top: var(--floating-menu-height, 80px);
+}
+
+@keyframes floatingMenuIn {
+  from {
+    transform: translateY(-100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
 }

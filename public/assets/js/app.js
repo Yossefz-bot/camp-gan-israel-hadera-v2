@@ -443,3 +443,50 @@ async function boot() {stabilizeMobileViewport();
 }
 
 document.addEventListener('DOMContentLoaded',boot);
+
+document.addEventListener("DOMContentLoaded", function () {
+  const header = document.querySelector(".site-header");
+
+  if (!header) {
+    console.warn("לא נמצא אלמנט עם המחלקה site-header");
+    return;
+  }
+
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+
+  function updateFloatingMenu() {
+    const currentScrollY = Math.max(window.scrollY, 0);
+    const isScrollingUp = currentScrollY < lastScrollY;
+    const passedHeader = currentScrollY > 120;
+
+    document.documentElement.style.setProperty(
+      "--floating-menu-height",
+      `${header.offsetHeight}px`
+    );
+
+    if (passedHeader && isScrollingUp) {
+      header.classList.add("is-floating");
+      document.body.classList.add("menu-is-floating");
+    } else if (!passedHeader || currentScrollY > lastScrollY) {
+      header.classList.remove("is-floating");
+      document.body.classList.remove("menu-is-floating");
+    }
+
+    lastScrollY = currentScrollY;
+    ticking = false;
+  }
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (!ticking) {
+        window.requestAnimationFrame(updateFloatingMenu);
+        ticking = true;
+      }
+    },
+    { passive: true }
+  );
+
+  window.addEventListener("resize", updateFloatingMenu);
+});
