@@ -1,68 +1,52 @@
-const CACHE = "camp-v17-floating-header";
+const CACHE_NAME = 'camp-v18-smart-header';
 
-const SHELL = [
-  "/",
-  "/index.html",
-  "/day.html",
-  "/assets/css/main.css?v=17.0.0",
-  "/assets/js/app.js?v=17.0.0",
-  "/assets/js/day.js?v=17.0.0",
-  "/favicon.svg"
-];
-
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches
-      .open(CACHE)
-      .then(cache => cache.addAll(SHELL))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
-self.addEventListener("activate", event => {
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches
-      .keys()
-      .then(keys =>
-        Promise.all(
-          keys
-            .filter(key => key !== CACHE)
-            .map(key => caches.delete(key))
-        )
-      )
+    caches.keys()
+      .then(names => Promise.all(
+        names
+          .filter(name => name !== CACHE_NAME)
+          .map(name => caches.delete(name))
+      ))
       .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener("fetch", event => {
-  const url = new URL(event.request.url);
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
 
-  if (
-    event.request.method !== "GET" ||
-    url.origin !== location.origin ||
-    url.pathname.startsWith("/api/") ||
-    url.pathname.startsWith("/admin/")
-  ) {
-    return;
-  }
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/admin/')) return;
 
-  event.respondWith(
-    fetch(event.request, { cache: "no-store" })
-      .then(response => {
-        if (response && response.ok) {
-          const copy = response.clone();
+  const isNavigation = request.mode === 'navigate';
+  const isCode = /\.(?:html|css|js)$/.test(url.pathname);
 
-          caches.open(CACHE).then(cache => {
-            cache.put(event.request, copy);
-          });
-        }
-
-        return response;
-      })
-      .catch(() =>
-        caches.match(event.request).then(hit => {
-          return hit || caches.match("/index.html");
+  // Pages and code are always checked online first so iPhone cannot stay on an old build.
+  if (isNavigation || isCode) {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then(response => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+          }
+          return response;
         })
-      )
-  );
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          if (isNavigation) {
+            const fallback = await caches.match('/index.html');
+            if (fallback) return fallback;
+          }
+          return new Response('Offline', { status: 503, statusText: 'Offline' });
+        })
+    );
+  }
 });

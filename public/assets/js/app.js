@@ -333,22 +333,150 @@ function initForms() {
   bind('#testimonial-form','/api/testimonials',(v)=>({...v,rating:Number(v.rating)||5}),()=>setTimeout(()=>$('#testimonial-modal').close(),900));
 }
 
+function getPageScrollY() {
+  return Math.max(
+    window.pageYOffset ||
+    document.documentElement.scrollTop ||
+    document.body.scrollTop ||
+    0,
+    0
+  );
+}
+
+function initSmartHeader() {
+  const header = $('#site-header');
+  const backToTop = $('#back-to-top');
+  const menuButton = $('#menu-button');
+
+  if (!header || header.dataset.smartHeaderReady === 'true') return;
+  header.dataset.smartHeaderReady = 'true';
+
+  let lastScrollY = getPageScrollY();
+  let direction = 0;
+  let travelled = 0;
+  let framePending = false;
+
+  const isMenuOpen = () => menuButton?.getAttribute('aria-expanded') === 'true';
+  const showHeader = () => header.classList.remove('header-hidden');
+
+  const updateHeader = () => {
+    framePending = false;
+
+    const currentScrollY = getPageScrollY();
+    const delta = currentScrollY - lastScrollY;
+
+    header.classList.toggle('scrolled', currentScrollY > 10);
+    backToTop?.classList.toggle('visible', currentScrollY > 650);
+
+    // At the top of the page, or while the mobile menu is open, keep the header visible.
+    if (currentScrollY <= 8 || isMenuOpen()) {
+      showHeader();
+      direction = 0;
+      travelled = 0;
+      lastScrollY = currentScrollY;
+      return;
+    }
+
+    // Ignore tiny Safari scroll jitter.
+    if (Math.abs(delta) < 1) {
+      lastScrollY = currentScrollY;
+      return;
+    }
+
+    const newDirection = delta > 0 ? 1 : -1;
+    if (newDirection !== direction) {
+      direction = newDirection;
+      travelled = 0;
+    }
+
+    travelled += Math.abs(delta);
+
+    // Scrolling down: hide only after the header itself has been passed.
+    if (
+      direction > 0 &&
+      currentScrollY > Math.max(90, header.offsetHeight) &&
+      travelled >= 16
+    ) {
+      header.classList.add('header-hidden');
+      travelled = 0;
+    }
+
+    // Scrolling up even slightly: reveal immediately.
+    if (direction < 0 && travelled >= 5) {
+      showHeader();
+      travelled = 0;
+    }
+
+    lastScrollY = currentScrollY;
+  };
+
+  const requestHeaderUpdate = () => {
+    if (framePending) return;
+    framePending = true;
+    window.requestAnimationFrame(updateHeader);
+  };
+
+  window.addEventListener('scroll', requestHeaderUpdate, { passive: true });
+  window.addEventListener('resize', requestHeaderUpdate, { passive: true });
+  window.addEventListener('orientationchange', () => {
+    showHeader();
+    window.setTimeout(() => {
+      lastScrollY = getPageScrollY();
+      requestHeaderUpdate();
+    }, 180);
+  }, { passive: true });
+
+  // Safari can restore a page from its back-forward cache without a full reload.
+  window.addEventListener('pageshow', () => {
+    showHeader();
+    direction = 0;
+    travelled = 0;
+    lastScrollY = getPageScrollY();
+    requestHeaderUpdate();
+  });
+
+  document.addEventListener('focusin', event => {
+    if (header.contains(event.target)) showHeader();
+  });
+
+  showHeader();
+  updateHeader();
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+
+  const register = async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        updateViaCache: 'none'
+      });
+      await registration.update();
+    } catch (error) {
+      console.warn('Service worker registration failed', error);
+    }
+  };
+
+  if (document.readyState === 'complete') register();
+  else window.addEventListener('load', register, { once: true });
+}
+
 function initInteractions() {
+  initSmartHeader();
+
   const header=$('#site-header'),backToTop=$('#back-to-top');
-  window.addEventListener('scroll',()=>{
-    header?.classList.toggle('scrolled',scrollY>10);
-    backToTop?.classList.toggle('visible',scrollY>650);
-  },{passive:true});
   backToTop?.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
 
   const menu=$('#menu-button'),nav=$('#mobile-nav');
   if(menu&&nav){
     menu.addEventListener('click',()=>{
+      header?.classList.remove('header-hidden');
       const open=menu.classList.toggle('active');
       nav.classList.toggle('open',open);
       menu.setAttribute('aria-expanded',String(open));
     });
     $$('#mobile-nav a').forEach(a=>a.addEventListener('click',()=>{
+      header?.classList.remove('header-hidden');
       menu.classList.remove('active');
       nav.classList.remove('open');
       menu.setAttribute('aria-expanded','false');
@@ -422,7 +550,10 @@ function stabilizeMobileViewport(){
   window.addEventListener('orientationchange',()=>setTimeout(apply,120),{passive:true});
 }
 
-async function boot() {stabilizeMobileViewport();
+async function boot() {
+  if (window.__campBootStarted) return;
+  window.__campBootStarted = true;
+  stabilizeMobileViewport();
   const loader=$('#site-loader');
   const loaderFallback=setTimeout(()=>loader?.classList.add('loaded'),3500);
   setText('#current-year',new Date().getFullYear());
@@ -439,83 +570,7 @@ async function boot() {stabilizeMobileViewport();
     loader?.classList.add('loaded');
     track(location.pathname);
   }
-  if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  registerServiceWorker();
 }
 
 document.addEventListener('DOMContentLoaded',boot);
-
-(function () {
-  function startFloatingMenu() {
-    const header = document.querySelector(
-      ".site-header, .main-header, .header, .navbar, .topbar, header, nav"
-    );
-
-    if (!header) {
-      console.error("Floating menu: לא נמצא תפריט באתר");
-      return;
-    }
-
-    const spacer = document.createElement("div");
-    spacer.className = "floating-menu-spacer";
-    header.parentNode.insertBefore(spacer, header);
-
-    let lastScrollPosition = window.pageYOffset || 0;
-    let ticking = false;
-
-    function updateMenu() {
-      const currentScrollPosition = Math.max(
-        window.pageYOffset || document.documentElement.scrollTop || 0,
-        0
-      );
-
-      const scrollingUp = currentScrollPosition < lastScrollPosition;
-      const passedMenu = currentScrollPosition > 100;
-
-      if (passedMenu) {
-        header.classList.add("floating-menu-active");
-        spacer.style.height = header.offsetHeight + "px";
-
-        if (scrollingUp) {
-          header.classList.remove("floating-menu-hidden");
-        } else {
-          header.classList.add("floating-menu-hidden");
-        }
-      } else {
-        header.classList.remove(
-          "floating-menu-active",
-          "floating-menu-hidden"
-        );
-
-        spacer.style.height = "0px";
-      }
-
-      lastScrollPosition = currentScrollPosition;
-      ticking = false;
-    }
-
-    window.addEventListener(
-      "scroll",
-      function () {
-        if (!ticking) {
-          window.requestAnimationFrame(updateMenu);
-          ticking = true;
-        }
-      },
-      { passive: true }
-    );
-
-    window.addEventListener("resize", function () {
-      if (header.classList.contains("floating-menu-active")) {
-        spacer.style.height = header.offsetHeight + "px";
-      }
-    });
-
-    updateMenu();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", startFloatingMenu);
-  } else {
-    startFloatingMenu();
-  }
-})();
