@@ -1,0 +1,23 @@
+V20 TEST REPORT
+================
+Route syntax: PASS
+Test syntax: PASS
+Range tests: PASS
+
+Output:
+All iPhone/Safari media range tests passed.
+
+Verified:
+- Full GET 200
+- HEAD 200
+- Range 0-99 returns 206
+- Open-ended range returns 206
+- Suffix range returns 206
+- Oversized end is clamped
+- Invalid range returns 416
+- Multiple ranges return 416
+- Ranged HEAD returns 206
+- If-Range mismatch falls back to full 200
+- If-None-Match returns 304
+- MIME fallback changes octet-stream MP4 to video/mp4
+- R2 receives a plain {offset, length} object, never Headers

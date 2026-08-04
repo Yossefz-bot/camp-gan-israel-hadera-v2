@@ -1,14 +1,8 @@
 {
-  "name": "camp-gan-israel-hadera-v16-1-iphone-video",
-  "version": "16.1.0",
+  "name": "camp-iphone-video-range-fix",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/check.mjs && node scripts/test-media-route.mjs",
-    "dev": "npx wrangler pages dev public",
-    "deploy": "npx wrangler pages deploy public"
-  },
-  "devDependencies": {
-    "wrangler": "^4.116.0"
+    "test": "node scripts/test-media-route-v20.mjs"
   }
 }

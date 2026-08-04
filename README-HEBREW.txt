@@ -1,12 +1,27 @@
-תיקון V13.1 לגלריה ולמטמון
+תיקון וידאו לאייפון — V20
 
-1. העתיקו את תיקיית public לתיקיית המאגר ואשרו החלפה.
-2. Commit: Fix gallery script and service worker cache
-3. Push origin והמתינו לפריסה ירוקה.
-4. בדפדפן: F12 > Application > Service Workers > Unregister, ואז Storage > Clear site data.
-5. פתחו מחדש את הגלריה.
+הבעיה שנמצאה:
+בקובץ הישן functions/api/media/[[path]].js הועברה ל-R2 בקשת Range בתור Headers.
+ב-Cloudflare R2 האפשרות range צריכה לקבל אובייקט R2Range:
+{ offset, length } או { suffix }.
 
-התיקון כולל:
-- בדיקות null לפני חיבור onclick.
-- גרסת day.js חדשה v13.1.0.
-- החלפת שם מטמון Service Worker כדי למחוק גרסאות ישנות.
+כאשר Safari באייפון ביקש חלק מהסרטון, הנתיב הישן עלול היה להחזיר 416,
+ולכן הופיעה ההודעה: "לא ניתן להפעיל את הסרטון במכשיר הזה".
+
+התקנה:
+1. העתק את הקובץ:
+   functions/api/media/[[path]].js
+2. החלף את הקובץ הקיים באותו מיקום בדיוק.
+3. Commit + Push ל-GitHub.
+4. המתן לסיום פריסת Cloudflare.
+5. סגור את לשונית האתר באייפון ופתח אותה מחדש.
+
+אין צורך לשנות app.js, main.css או index.html עבור התקלה הזאת.
+
+Summary מומלץ:
+Fix iPhone video byte-range streaming V20
+
+הערה:
+אם לאחר תיקון השרת רק סרטון מסוים עדיין לא עובד, הקובץ עצמו כנראה
+אינו מקודד בפורמט מתאים לאייפון. במקרה כזה יש להמיר ל-MP4 עם
+וידאו H.264 ושמע AAC ולהעלות מחדש.
