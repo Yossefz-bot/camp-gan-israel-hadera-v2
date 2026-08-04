@@ -1,23 +1,15 @@
-V20 TEST REPORT
-================
-Route syntax: PASS
-Test syntax: PASS
-Range tests: PASS
+V20.2 TEST REPORT
+=================
 
-Output:
-All iPhone/Safari media range tests passed.
+JavaScript syntax: PASS
+app.js loaded once: PASS
+new mount function present: PASS
+old detached load removed: PASS
+success events clear error state: PASS
+app version updated: PASS
 
-Verified:
-- Full GET 200
-- HEAD 200
-- Range 0-99 returns 206
-- Open-ended range returns 206
-- Suffix range returns 206
-- Oversized end is clamped
-- Invalid range returns 416
-- Multiple ranges return 416
-- Ranged HEAD returns 206
-- If-Range mismatch falls back to full 200
-- If-None-Match returns 304
-- MIME fallback changes octet-stream MP4 to video/mp4
-- R2 receives a plain {offset, length} object, never Headers
+Important behavior:
+- The video element is inserted into the DOM before its src is assigned.
+- No premature video.load() call is used.
+- A stale video-load-error class is removed on loadedmetadata, loadeddata, canplay and playing.
+- iPhone playback is not left muted merely because autoplay was configured.

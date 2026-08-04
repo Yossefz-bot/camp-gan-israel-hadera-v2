@@ -75,9 +75,13 @@ function homepageVideoEmbedUrl(url, autoplay = false, loop = false, controls = t
   return text;
 }
 
-function createPublicVideo(src,{poster='',autoplay=false,loop=false,controls=true,muted=false,label='סרטון'}={}) {
+function mountPublicVideo(container,src,{poster='',autoplay=false,loop=false,controls=true,muted=false,label='סרטון'}={}) {
   const video=document.createElement('video');
-  video.src=src;
+  const shouldAutoplay=Boolean(autoplay&&!isIOS);
+  const clearLoadError=()=>container.classList.remove('video-load-error');
+
+  container.classList.remove('video-load-error');
+
   video.preload='metadata';
   video.playsInline=true;
   video.setAttribute('playsinline','');
@@ -86,12 +90,39 @@ function createPublicVideo(src,{poster='',autoplay=false,loop=false,controls=tru
   video.setAttribute('controlslist','nodownload');
   video.setAttribute('aria-label',label);
   video.controls=Boolean(controls||isIOS);
-  video.muted=Boolean(muted||autoplay);
   video.loop=Boolean(loop);
+  video.autoplay=shouldAutoplay;
+
+  /*
+   * באייפון אנחנו לא מפעילים autoplay, ולכן אסור להשאיר
+   * את הסרטון מושתק רק מפני שבניהול סומן autoplay.
+   */
+  video.muted=Boolean(muted&&shouldAutoplay);
+  video.defaultMuted=video.muted;
+
   if(poster)video.poster=poster;
-  if(autoplay&&!isIOS)video.autoplay=true;
-  video.addEventListener('error',()=>video.closest('.has-video,.hero-slide')?.classList.add('video-load-error'));
-  video.load();
+
+  ['loadedmetadata','loadeddata','canplay','playing'].forEach(eventName=>{
+    video.addEventListener(eventName,clearLoadError);
+  });
+
+  video.addEventListener('error',()=>{
+    /*
+     * מציגים שגיאה רק אם Safari קבע שלמשאב הנוכחי
+     * יש MediaError אמיתי. המחלקה תוסר אוטומטית
+     * אם המשאב נטען בהמשך.
+     */
+    if(video.error)container.classList.add('video-load-error');
+  });
+
+  /*
+   * קודם מכניסים את אלמנט הווידאו למסמך ורק אחר כך
+   * מחברים את ה-src. זה מונע מ-Safari באייפון להתחיל
+   * טעינה כאשר האלמנט עדיין מנותק מה-DOM.
+   */
+  container.replaceChildren(video);
+  video.src=String(src||'').trim();
+
   return video;
 }
 
@@ -107,7 +138,7 @@ function renderHomepageMedia(slot, node, settings) {
   if (!node) return;
   const type = homepageMediaType(slot, settings);
   const title = slot === 'hero' ? (settings.hero_title || settings.camp_name) : (settings.story_title || settings.camp_name);
-  node.classList.remove('has-image','has-video','has-slideshow');
+  node.classList.remove('has-image','has-video','has-slideshow','video-load-error');
   if (slot === 'hero' && type === 'slideshow' && state.heroSlides.length) {
     renderHeroSlideshow(node, state.heroSlides, title);
     return;
@@ -129,7 +160,7 @@ function renderHomepageMedia(slot, node, settings) {
     if(isEmbed){
       node.innerHTML=`<iframe src="${escapeHtml(embed)}" title="${escapeHtml(title)}" allow="autoplay; fullscreen; picture-in-picture" loading="${slot === 'hero' ? 'eager' : 'lazy'}" allowfullscreen></iframe>`;
     }else{
-      node.replaceChildren(createPublicVideo(videoSource,{poster,autoplay,loop,controls,muted:autoplay,label:title}));
+      mountPublicVideo(node,videoSource,{poster,autoplay,loop,controls,muted:autoplay,label:title});
     }
     return;
   }
@@ -156,6 +187,22 @@ function renderHeroSlideshow(node, slides, title) {
     return `<div class="hero-slide" data-slide-index="${index}"><img src="${escapeHtml(slide.url||mediaUrl(slide.object_key))}" alt="${label}" ${index===0?'fetchpriority="high"':'loading="lazy"'}></div>`;
   }).join('')}</div>${items.length>1?`<button class="hero-slide-nav hero-slide-prev" type="button" aria-label="המדיה הקודמת">‹</button><button class="hero-slide-nav hero-slide-next" type="button" aria-label="המדיה הבאה">›</button><div class="hero-slide-dots">${items.map((_,i)=>`<button type="button" data-hero-dot="${i}" aria-label="מעבר לשקופית ${i+1}"></button>`).join('')}</div>`:''}`;
   const slideNodes=$$('.hero-slide',node),dots=$$('[data-hero-dot]',node);
+
+  slideNodes.forEach(slide=>{
+    const video=$('video',slide);
+    if(!video)return;
+
+    const clearLoadError=()=>slide.classList.remove('video-load-error');
+
+    ['loadedmetadata','loadeddata','canplay','playing'].forEach(eventName=>{
+      video.addEventListener(eventName,clearLoadError);
+    });
+
+    video.addEventListener('error',()=>{
+      if(video.error)slide.classList.add('video-load-error');
+    });
+  });
+
   const activate=(index,manual=false)=>{
     clearHeroSlideTimer();state.heroSlideIndex=(index+items.length)%items.length;
     slideNodes.forEach((slide,i)=>slide.classList.toggle('active',i===state.heroSlideIndex));
