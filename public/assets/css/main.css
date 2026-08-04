@@ -656,21 +656,6 @@ img,video,iframe,svg,canvas{
 .video-playback-fallback .button{
   min-height:44px;
 }
-.hero-media.video-load-error::after,
-.story-photo.video-load-error::after,
-.hero-slide.video-load-error::after{
-  content:"לא ניתן להפעיל את הסרטון במכשיר הזה";
-  position:absolute;
-  z-index:5;
-  inset:auto 12px 12px;
-  padding:10px 12px;
-  border-radius:12px;
-  background:rgba(5,14,27,.88);
-  color:#fff;
-  text-align:center;
-  font-size:13px;
-  font-weight:800;
-}
 @supports (-webkit-touch-callout:none){
   .day-video-wrap video,
   .lightbox-stage video{

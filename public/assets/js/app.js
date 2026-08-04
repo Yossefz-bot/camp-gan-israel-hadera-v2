@@ -75,53 +75,75 @@ function homepageVideoEmbedUrl(url, autoplay = false, loop = false, controls = t
   return text;
 }
 
-function mountPublicVideo(container,src,{poster='',autoplay=false,loop=false,controls=true,muted=false,label='סרטון'}={}) {
-  const video=document.createElement('video');
-  const shouldAutoplay=Boolean(autoplay&&!isIOS);
-  const clearLoadError=()=>container.classList.remove('video-load-error');
+function homepageVideoMimeType(src) {
+  const clean=String(src||'').split(/[?#]/)[0].toLowerCase();
+  if(clean.endsWith('.mp4')||clean.endsWith('.m4v'))return 'video/mp4';
+  if(clean.endsWith('.mov'))return 'video/quicktime';
+  if(clean.endsWith('.webm'))return 'video/webm';
+  return '';
+}
 
+function mountPublicVideo(container,src,{poster='',autoplay=false,loop=false,controls=true,muted=false,label='סרטון'}={}) {
+  const cleanSrc=String(src||'').trim();
+  const shouldAutoplay=Boolean(autoplay&&!isIOS);
+  const mimeType=homepageVideoMimeType(cleanSrc);
+
+  /*
+   * נבנה כאן בדיוק אותו מבנה שעבר בהצלחה בדף הבדיקה באייפון:
+   * <video controls playsinline preload="metadata">
+   *   <source src="..." type="video/mp4">
+   * </video>
+   *
+   * לא משתמשים ב-video.src ולא קוראים video.load() ידנית.
+   */
   container.classList.remove('video-load-error');
 
-  video.preload='metadata';
-  video.playsInline=true;
-  video.setAttribute('playsinline','');
-  video.setAttribute('webkit-playsinline','');
-  video.setAttribute('x-webkit-airplay','allow');
-  video.setAttribute('controlslist','nodownload');
-  video.setAttribute('aria-label',label);
-  video.controls=Boolean(controls||isIOS);
-  video.loop=Boolean(loop);
-  video.autoplay=shouldAutoplay;
+  const posterAttribute=poster
+    ? ` poster="${escapeHtml(poster)}"`
+    : '';
+
+  const loopAttribute=loop
+    ? ' loop'
+    : '';
+
+  const autoplayAttribute=shouldAutoplay
+    ? ' autoplay'
+    : '';
+
+  const mutedAttribute=Boolean(muted&&shouldAutoplay)
+    ? ' muted'
+    : '';
+
+  const controlsAttribute=(controls||isIOS)
+    ? ' controls'
+    : '';
+
+  const typeAttribute=mimeType
+    ? ` type="${escapeHtml(mimeType)}"`
+    : '';
+
+  container.innerHTML=
+    `<video${controlsAttribute} playsinline webkit-playsinline preload="metadata"`+
+    ` x-webkit-airplay="allow" controlslist="nodownload"`+
+    ` aria-label="${escapeHtml(label)}"${posterAttribute}${loopAttribute}`+
+    `${autoplayAttribute}${mutedAttribute}>`+
+    `<source src="${escapeHtml(cleanSrc)}"${typeAttribute}>`+
+    `</video>`;
+
+  const video=$('video',container);
 
   /*
-   * באייפון אנחנו לא מפעילים autoplay, ולכן אסור להשאיר
-   * את הסרטון מושתק רק מפני שבניהול סומן autoplay.
+   * ההודעה הישנה הייתה הודעת CSS כללית שהוצגה על כל error.
+   * מאחר שהבדיקה הוכיחה שהסרטון והשרת תקינים, לא מוסיפים יותר
+   * את video-load-error ולא מכסים את הנגן בהודעה מטעה.
    */
-  video.muted=Boolean(muted&&shouldAutoplay);
-  video.defaultMuted=video.muted;
-
-  if(poster)video.poster=poster;
-
-  ['loadedmetadata','loadeddata','canplay','playing'].forEach(eventName=>{
-    video.addEventListener(eventName,clearLoadError);
+  video?.addEventListener('error',()=>{
+    console.warn('Homepage video error', {
+      code:video.error?.code||0,
+      message:video.error?.message||'',
+      currentSrc:video.currentSrc||cleanSrc
+    });
   });
-
-  video.addEventListener('error',()=>{
-    /*
-     * מציגים שגיאה רק אם Safari קבע שלמשאב הנוכחי
-     * יש MediaError אמיתי. המחלקה תוסר אוטומטית
-     * אם המשאב נטען בהמשך.
-     */
-    if(video.error)container.classList.add('video-load-error');
-  });
-
-  /*
-   * קודם מכניסים את אלמנט הווידאו למסמך ורק אחר כך
-   * מחברים את ה-src. זה מונע מ-Safari באייפון להתחיל
-   * טעינה כאשר האלמנט עדיין מנותק מה-DOM.
-   */
-  container.replaceChildren(video);
-  video.src=String(src||'').trim();
 
   return video;
 }
@@ -164,7 +186,7 @@ function renderHomepageMedia(slot, node, settings) {
     }
     return;
   }
-  node.classList.remove('has-image','has-video','has-slideshow');
+  node.classList.remove('has-image','has-video','has-slideshow','video-load-error');
   node.innerHTML = slot === 'hero'
     ? `<div class="hero-placeholder"><span>🏕️</span><strong>${escapeHtml(settings.camp_name || 'קעמפ גן ישראל')}</strong><small>${escapeHtml(settings.city || '')}</small></div>`
     : `<span class="story-placeholder">☀️</span>`;
@@ -196,10 +218,6 @@ function renderHeroSlideshow(node, slides, title) {
 
     ['loadedmetadata','loadeddata','canplay','playing'].forEach(eventName=>{
       video.addEventListener(eventName,clearLoadError);
-    });
-
-    video.addEventListener('error',()=>{
-      if(video.error)slide.classList.add('video-load-error');
     });
   });
 
