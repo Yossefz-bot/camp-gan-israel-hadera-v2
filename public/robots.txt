@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /api/admin/
+
 Sitemap: https://camp-gan-israel-hadera-v2.pages.dev/sitemap.xml
