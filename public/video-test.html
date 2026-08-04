@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <title>בדיקת וידאו באייפון</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: Arial, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: max(18px, env(safe-area-inset-top)) 16px
+        max(24px, env(safe-area-inset-bottom));
+      background: #0d1d31;
+      color: #fff;
+      line-height: 1.55;
+    }
+    main { width: min(760px, 100%); margin: auto; }
+    h1 { font-size: 27px; margin: 0 0 8px; }
+    p { color: #c9d7e8; }
+    .card {
+      background: #142943;
+      border: 1px solid #2d4768;
+      border-radius: 20px;
+      padding: 16px;
+      margin: 14px 0;
+    }
+    video {
+      display: block;
+      width: 100%;
+      max-height: 65vh;
+      background: #000;
+      border-radius: 16px;
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    button, a.button {
+      border: 0;
+      border-radius: 13px;
+      min-height: 46px;
+      padding: 10px 15px;
+      font: inherit;
+      font-weight: 800;
+      background: #ff7b24;
+      color: #fff;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    button.secondary, a.secondary { background: #2d4768; }
+    button:disabled { opacity: .55; }
+    code {
+      direction: ltr;
+      unicode-bidi: plaintext;
+      display: block;
+      overflow-wrap: anywhere;
+      color: #aee3ff;
+      font-size: 12px;
+    }
+    pre {
+      direction: ltr;
+      text-align: left;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #071321;
+      border-radius: 14px;
+      padding: 13px;
+      min-height: 130px;
+      color: #dcecff;
+      font-size: 12px;
+    }
+    .result {
+      display: grid;
+      gap: 8px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: minmax(115px, .6fr) 1.4fr;
+      gap: 10px;
+      border-bottom: 1px solid #294361;
+      padding: 7px 0;
+    }
+    .row strong { color: #b7c9dc; }
+    .row span {
+      direction: ltr;
+      unicode-bidi: plaintext;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+    .ok { color: #73e59d; }
+    .bad { color: #ff8989; }
+    .warn { color: #ffd26b; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>בדיקת וידאו באייפון</h1>
+  <p>
+    הדף הזה בודק את אותו סרטון בלי הקוד והעיצוב של האתר,
+    ומציג את שגיאת Safari ואת תשובות השרת.
+  </p>
+
+  <section class="card">
+    <strong>כתובת הסרטון</strong>
+    <code id="video-url">https://camp-gan-israel-hadera-v2.pages.dev/api/media/general/homepage/video/2026-08-01/02ae49c0-86b1-4ba0-a721-c3357c523f3f-WhatsApp-Video-2026-07-05-at-21.50.52.mp4</code>
+  </section>
+
+  <section class="card">
+    <h2>1. נגן HTML נקי</h2>
+    <video id="test-video" controls playsinline webkit-playsinline preload="metadata">
+      <source src="https://camp-gan-israel-hadera-v2.pages.dev/api/media/general/homepage/video/2026-08-01/02ae49c0-86b1-4ba0-a721-c3357c523f3f-WhatsApp-Video-2026-07-05-at-21.50.52.mp4" type="video/mp4">
+    </video>
+    <div class="buttons">
+      <button id="play-button" type="button">הפעל סרטון</button>
+      <a class="button secondary" href="https://camp-gan-israel-hadera-v2.pages.dev/api/media/general/homepage/video/2026-08-01/02ae49c0-86b1-4ba0-a721-c3357c523f3f-WhatsApp-Video-2026-07-05-at-21.50.52.mp4" target="_blank" rel="noopener">
+        פתח ישירות
+      </a>
+      <button class="secondary" id="reload-button" type="button">טען מחדש</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. בדיקות שרת</h2>
+    <div id="server-results" class="result"></div>
+    <div class="buttons">
+      <button id="run-button" type="button">הרץ בדיקות מחדש</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. בדיקת Blob</h2>
+    <p>
+      הבדיקה מורידה זמנית את כל הסרטון לזיכרון ומנסה לנגן אותו.
+      השתמש בה רק אחרי הבדיקה הרגילה.
+    </p>
+    <div class="buttons">
+      <button id="blob-button" type="button">טען ונגן כ־Blob</button>
+    </div>
+    <div id="blob-status"></div>
+  </section>
+
+  <section class="card">
+    <h2>יומן אירועי הנגן</h2>
+    <pre id="log"></pre>
+    <div class="buttons">
+      <button id="copy-button" type="button">העתק דוח</button>
+      <button class="secondary" id="clear-button" type="button">נקה יומן</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const VIDEO_URL = 'https://camp-gan-israel-hadera-v2.pages.dev/api/media/general/homepage/video/2026-08-01/02ae49c0-86b1-4ba0-a721-c3357c523f3f-WhatsApp-Video-2026-07-05-at-21.50.52.mp4';
+  const video = document.getElementById('test-video');
+  const logBox = document.getElementById('log');
+  const results = document.getElementById('server-results');
+  const blobStatus = document.getElementById('blob-status');
+  let blobUrl = '';
+
+  const readyStates = [
+    'HAVE_NOTHING',
+    'HAVE_METADATA',
+    'HAVE_CURRENT_DATA',
+    'HAVE_FUTURE_DATA',
+    'HAVE_ENOUGH_DATA'
+  ];
+
+  const networkStates = [
+    'NETWORK_EMPTY',
+    'NETWORK_IDLE',
+    'NETWORK_LOADING',
+    'NETWORK_NO_SOURCE'
+  ];
+
+  const mediaErrorNames = {
+    1: 'MEDIA_ERR_ABORTED',
+    2: 'MEDIA_ERR_NETWORK',
+    3: 'MEDIA_ERR_DECODE',
+    4: 'MEDIA_ERR_SRC_NOT_SUPPORTED'
+  };
+
+  function now() {
+    return new Date().toLocaleTimeString('he-IL', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      fractionalSecondDigits: 3
+    });
+  }
+
+  function errorDetails() {
+    if (!video.error) return 'none';
+
+    return [
+      mediaErrorNames[video.error.code] || `code ${video.error.code}`,
+      video.error.message || ''
+    ].filter(Boolean).join(' — ');
+  }
+
+  function line(message) {
+    const state = [
+      `ready=${readyStates[video.readyState] || video.readyState}`,
+      `network=${networkStates[video.networkState] || video.networkState}`,
+      `error=${errorDetails()}`,
+      `paused=${video.paused}`,
+      `muted=${video.muted}`
+    ].join(' | ');
+
+    logBox.textContent += `[${now()}] ${message}\n${state}\n\n`;
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function addResult(name, value, status = '') {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML =
+      `<strong>${name}</strong><span class="${status}"></span>`;
+    row.querySelector('span').textContent = String(value ?? '');
+    results.append(row);
+  }
+
+  function importantHeaders(response) {
+    const names = [
+      'content-type',
+      'content-length',
+      'content-range',
+      'accept-ranges',
+      'content-disposition',
+      'content-encoding',
+      'cache-control',
+      'etag',
+      'x-content-type-options'
+    ];
+
+    return Object.fromEntries(
+      names.map(name => [name, response.headers.get(name) || '—'])
+    );
+  }
+
+  async function runServerTests() {
+    results.replaceChildren();
+    addResult('canPlayType mp4', video.canPlayType('video/mp4') || 'empty');
+    addResult(
+      'canPlayType H.264',
+      video.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"') || 'empty'
+    );
+
+    try {
+      const head = await fetch(VIDEO_URL, {
+        method: 'HEAD',
+        cache: 'no-store'
+      });
+
+      addResult('HEAD status', head.status, head.ok ? 'ok' : 'bad');
+
+      for (const [name, value] of Object.entries(importantHeaders(head))) {
+        addResult(`HEAD ${name}`, value);
+      }
+    } catch (error) {
+      addResult('HEAD error', error.message, 'bad');
+    }
+
+    try {
+      const range = await fetch(VIDEO_URL, {
+        method: 'GET',
+        headers: { Range: 'bytes=0-1023' },
+        cache: 'no-store'
+      });
+
+      addResult(
+        'Range status',
+        range.status,
+        range.status === 206 ? 'ok' : 'bad'
+      );
+
+      for (const [name, value] of Object.entries(importantHeaders(range))) {
+        addResult(`Range ${name}`, value);
+      }
+
+      const buffer = await range.arrayBuffer();
+      const bytes = [...new Uint8Array(buffer.slice(0, 32))]
+        .map(value => value.toString(16).padStart(2, '0'))
+        .join(' ');
+
+      const text = new TextDecoder('latin1')
+        .decode(buffer.slice(0, 32))
+        .replace(/[^\x20-\x7E]/g, '.');
+
+      addResult('Range bytes', buffer.byteLength);
+      addResult('32 bytes hex', bytes);
+      addResult('32 bytes text', text);
+      addResult(
+        'MP4 ftyp signature',
+        text.includes('ftyp') ? 'נמצא' : 'לא נמצא',
+        text.includes('ftyp') ? 'ok' : 'warn'
+      );
+    } catch (error) {
+      addResult('Range error', error.message, 'bad');
+    }
+  }
+
+  const events = [
+    'loadstart',
+    'progress',
+    'suspend',
+    'stalled',
+    'loadedmetadata',
+    'loadeddata',
+    'canplay',
+    'canplaythrough',
+    'play',
+    'playing',
+    'pause',
+    'waiting',
+    'seeking',
+    'seeked',
+    'ended',
+    'abort',
+    'emptied',
+    'error'
+  ];
+
+  for (const eventName of events) {
+    video.addEventListener(eventName, () => line(`event: ${eventName}`));
+  }
+
+  document.getElementById('play-button').addEventListener('click', async () => {
+    line('play button clicked');
+
+    try {
+      await video.play();
+      line('video.play resolved');
+    } catch (error) {
+      line(`video.play rejected: ${error.name} — ${error.message}`);
+    }
+  });
+
+  document.getElementById('reload-button').addEventListener('click', () => {
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+      blobUrl = '';
+    }
+
+    video.pause();
+    video.src = VIDEO_URL;
+    video.load();
+    line('normal URL reloaded');
+  });
+
+  document.getElementById('run-button').addEventListener(
+    'click',
+    runServerTests
+  );
+
+  document.getElementById('blob-button').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    blobStatus.textContent = 'מוריד את הסרטון...';
+
+    try {
+      const response = await fetch(VIDEO_URL, {
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      blobUrl = URL.createObjectURL(
+        new Blob([blob], { type: 'video/mp4' })
+      );
+
+      video.pause();
+      video.src = blobUrl;
+      video.load();
+
+      blobStatus.textContent =
+        `הורדו ${(blob.size / 1024 / 1024).toFixed(1)} MB. מנסה לנגן...`;
+
+      await video.play();
+      line('blob playback started');
+      blobStatus.textContent += ' הצליח ✅';
+    } catch (error) {
+      line(`blob test failed: ${error.name} — ${error.message}`);
+      blobStatus.textContent = `בדיקת Blob נכשלה: ${error.message}`;
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  document.getElementById('clear-button').addEventListener('click', () => {
+    logBox.textContent = '';
+  });
+
+  document.getElementById('copy-button').addEventListener('click', async () => {
+    const report = [
+      `URL: ${VIDEO_URL}`,
+      '',
+      'SERVER RESULTS:',
+      results.innerText,
+      '',
+      'PLAYER LOG:',
+      logBox.textContent
+    ].join('\n');
+
+    try {
+      await navigator.clipboard.writeText(report);
+      alert('הדוח הועתק');
+    } catch {
+      prompt('העתק את הדוח:', report);
+    }
+  });
+
+  line(`userAgent: ${navigator.userAgent}`);
+  line(`currentSrc: ${video.currentSrc || 'empty'}`);
+  runServerTests();
+})();
+</script>
+</body>
+</html>
