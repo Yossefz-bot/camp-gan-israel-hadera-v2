@@ -23,7 +23,10 @@ async function api(url,options={}){
 function toast(message,type='success'){const n=document.createElement('div');n.className=`toast ${type}`;n.textContent=message;$('#toast-region').append(n);setTimeout(()=>n.remove(),4200)}
 function formStatus(form,message,type=''){const node=$('.form-status',form);if(!node)return;node.textContent=message;node.className=`form-status ${type}`}
 function showLogin(){state.csrf='';$('#admin-app').classList.add('is-hidden');$('#login-screen').classList.remove('is-hidden');setTimeout(()=>$('#admin-password').focus(),50)}
-async function showApp(session){state.csrf=session.csrf;$('#login-screen').classList.add('is-hidden');$('#admin-app').classList.remove('is-hidden');await Promise.allSettled([loadHealth(),loadDays(true)]);goView('dashboard')}
+async function showApp(session){
+  state.csrf=session.csrf;
+  try{localStorage.setItem('camp-analytics-exclude','1')}catch{}
+$('#login-screen').classList.add('is-hidden');$('#admin-app').classList.remove('is-hidden');await Promise.allSettled([loadHealth(),loadDays(true)]);goView('dashboard')}
 
 function initAuth(){
   $('#login-form').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,button=$('button[type="submit"]',form);button.disabled=true;formStatus(form,'בודק...');try{const data=await fetch('/api/admin/login',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({password:$('#admin-password').value})}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||d.error);return d});form.reset();await showApp(data)}catch(error){formStatus(form,error.message,'error')}finally{button.disabled=false}});
@@ -346,7 +349,25 @@ function initNewsletter(){
   $('#whatsapp-open-current').onclick=openCurrentWhatsApp;$('#whatsapp-prev').onclick=()=>{state.whatsappIndex=Math.max(0,state.whatsappIndex-1);renderWhatsAppQueue()};$('#whatsapp-next').onclick=()=>{state.whatsappIndex=Math.min(state.whatsappRecipients.length-1,state.whatsappIndex+1);renderWhatsAppQueue()};
 }
 
-async function loadAnalytics(){const days=$('#analytics-days').value||30,data=await api(`/api/admin/analytics?days=${days}`);setText('#analytics-total',`${formatNumber(data.total_views)} צפיות`);renderChart(data.timeline,Number(days));const max=Math.max(1,...data.pages.map(p=>Number(p.views)));$('#top-pages').innerHTML=data.pages.length?data.pages.map((p,i)=>`<div class="rank-item"><span class="rank-number">${i+1}</span><div><strong>${escapeHtml(p.page_key)}</strong><div class="rank-bar"><span style="width:${Number(p.views)/max*100}%"></span></div></div><b>${formatNumber(p.views)}</b></div>`).join(''):'<div class="admin-empty">עוד אין נתוני צפייה</div>';$('#event-stats').innerHTML=data.events.map(e=>`<div class="event-stat"><strong>${formatNumber(e.count)}</strong><small>${escapeHtml(e.event_key)}</small></div>`).join('')}
+function formatAnalyticsDuration(value){
+  const seconds=Math.max(0,Math.round(Number(value)||0));
+  if(seconds<60)return `${seconds} שנ׳`;
+  if(seconds<3600){const minutes=Math.floor(seconds/60),remainder=seconds%60;return `${minutes}:${String(remainder).padStart(2,'0')} דק׳`}
+  const hours=Math.floor(seconds/3600),minutes=Math.floor((seconds%3600)/60);return `${hours}:${String(minutes).padStart(2,'0')} שע׳`;
+}
+function analyticsPageLabel(pageKey){const key=String(pageKey||'/');if(key==='/'||key==='index')return 'דף הבית';if(key.startsWith('day/'))return `גלריה — ${key.slice(4)}`;return key}
+function analyticsEventLabel(eventKey){const labels={view:'צפיות',share:'שיתופים',contact:'פניות',subscribe:'הרשמות'};return labels[eventKey]||eventKey}
+async function loadAnalytics(){
+  const days=$('#analytics-days').value||30,data=await api(`/api/admin/analytics?days=${days}`);
+  const totalViews=Number(data.total_views||0),totalTime=Number(data.total_engaged_seconds||0),averageTime=Number(data.average_engaged_seconds||0);
+  setText('#analytics-total',`${formatNumber(totalViews)} צפיות · ${formatAnalyticsDuration(totalTime)} זמן צפייה`);
+  setText('#analytics-total-views',formatNumber(totalViews));setText('#analytics-total-time',formatAnalyticsDuration(totalTime));setText('#analytics-average-time',formatAnalyticsDuration(averageTime));setText('#analytics-device-status','לא נספר');
+  renderChart(data.timeline,Number(days));
+  const max=Math.max(1,...data.pages.map(page=>Number(page.views)));
+  $('#top-pages').innerHTML=data.pages.length?data.pages.map((page,index)=>{const views=Number(page.views||0),totalSeconds=Number(page.engaged_seconds||0),averageSeconds=Number(page.average_seconds||0);return `<div class="rank-item analytics-rank-item"><span class="rank-number">${index+1}</span><div class="analytics-page-copy"><strong>${escapeHtml(analyticsPageLabel(page.page_key))}</strong><small>${formatNumber(views)} צפיות · ${formatAnalyticsDuration(totalSeconds)} סה״כ · ${formatAnalyticsDuration(averageSeconds)} ממוצע</small><div class="rank-bar"><span style="width:${views/max*100}%"></span></div></div><b>${formatNumber(views)}</b></div>`}).join(''):'<div class="admin-empty">עוד אין נתוני צפייה</div>';
+  $('#event-stats').innerHTML=data.events.length?data.events.map(event=>`<div class="event-stat"><strong>${formatNumber(event.count)}</strong><small>${escapeHtml(analyticsEventLabel(event.event_key))}</small></div>`).join(''):'<div class="admin-empty">עוד אין אירועים נוספים</div>';
+}
+
 function renderChart(timeline,days){const canvas=$('#analytics-chart'),dpr=devicePixelRatio||1,width=canvas.clientWidth||700,height=240;canvas.width=width*dpr;canvas.height=height*dpr;const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,width,height);const values=timeline.map(x=>Number(x.views)),max=Math.max(1,...values);ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--line');ctx.lineWidth=1;for(let i=0;i<5;i++){const y=20+i*(height-50)/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke()}if(!values.length)return;const points=values.map((v,i)=>({x:20+i*(width-40)/Math.max(1,values.length-1),y:height-30-v/max*(height-60)}));ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--primary');ctx.lineWidth=3;ctx.lineJoin='round';ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--primary');points.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fill()})}
 
 async function loadHealth(){try{const data=await api('/api/admin/health');state.health=data;renderHealth(data)}catch(error){renderHealth({ok:false,checks:[{name:'המערכת',ok:false,detail:error.message}]})}}

@@ -1,15 +1,31 @@
-V20.2 TEST REPORT
-=================
-
-JavaScript syntax: PASS
-app.js loaded once: PASS
-new mount function present: PASS
-old detached load removed: PASS
-success events clear error state: PASS
-app version updated: PASS
-
-Important behavior:
-- The video element is inserted into the DOM before its src is assigned.
-- No premature video.load() call is used.
-- A stale video-load-error class is removed on loadedmetadata, loadeddata, canplay and playing.
-- iPhone playback is not left muted merely because autoplay was configured.
+{
+  "javascript_syntax": {
+    "functions/api/track.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "functions/api/admin/analytics.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/assets/js/app.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/assets/js/day.js": {
+      "ok": true,
+      "stderr": ""
+    },
+    "public/assets/js/admin.js": {
+      "ok": true,
+      "stderr": ""
+    }
+  },
+  "checks": {
+    "admin_exclusion": true,
+    "30_minute_view_deduplication": true,
+    "visible_time_tracking": true,
+    "per_page_time": true,
+    "no_migration_required": true
+  }
+}

@@ -623,7 +623,48 @@ function startCountdown(target) {
   const update=()=>{const diff=Math.max(0,date-Date.now());const days=Math.floor(diff/86400000),hours=Math.floor(diff/3600000)%24,minutes=Math.floor(diff/60000)%60,seconds=Math.floor(diff/1000)%60;setText('#count-days',String(days).padStart(2,'0'));setText('#count-hours',String(hours).padStart(2,'0'));setText('#count-minutes',String(minutes).padStart(2,'0'));setText('#count-seconds',String(seconds).padStart(2,'0'));if(diff<=0)clearInterval(timer);};update();const timer=setInterval(update,1000);
 }
 
-async function track(page='/',event='view') { try{await fetch('/api/track',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({page,event}),keepalive:true});}catch{} }
+const ANALYTICS_EXCLUDE_KEY='camp-analytics-exclude';
+const ANALYTICS_VIEW_WINDOW_MS=30*60*1000;
+const ANALYTICS_FLUSH_SECONDS=30;
+
+function analyticsIsExcluded(){
+  try{return localStorage.getItem(ANALYTICS_EXCLUDE_KEY)==='1'}catch{return false}
+}
+function analyticsViewStorageKey(page){return `camp-analytics-view:${String(page||'/')}`}
+function analyticsShouldCountView(page){
+  try{
+    const key=analyticsViewStorageKey(page),now=Date.now(),previous=Number(localStorage.getItem(key)||0);
+    if(previous>0&&now-previous<ANALYTICS_VIEW_WINDOW_MS)return false;
+    localStorage.setItem(key,String(now));return true;
+  }catch{return true}
+}
+function analyticsPayload(page,event,value=1){return JSON.stringify({page:String(page||'/'),event:String(event||'view'),value:Number(value)||1})}
+async function sendAnalyticsEvent(page,event='view',value=1,{beacon=false}={}){
+  if(analyticsIsExcluded())return;
+  const body=analyticsPayload(page,event,value);
+  if(beacon&&navigator.sendBeacon){
+    try{const accepted=navigator.sendBeacon('/api/track',new Blob([body],{type:'application/json'}));if(accepted)return}catch{}
+  }
+  try{await fetch('/api/track',{method:'POST',headers:{'content-type':'application/json'},body,keepalive:true,credentials:'same-origin'})}catch{}
+}
+function startAnalytics(page='/'){
+  const pageKey=String(page||'/');if(analyticsIsExcluded())return;
+  if(analyticsShouldCountView(pageKey))sendAnalyticsEvent(pageKey,'view',1);
+  let pendingSeconds=0,destroyed=false;
+  const flush=({beacon=false}={})=>{
+    if(pendingSeconds<1||destroyed)return;
+    const seconds=Math.min(60,pendingSeconds);pendingSeconds-=seconds;
+    sendAnalyticsEvent(pageKey,'engaged_seconds',seconds,{beacon});
+    if(pendingSeconds>0)flush({beacon});
+  };
+  const timer=setInterval(()=>{
+    if(document.visibilityState==='visible')pendingSeconds+=1;
+    if(pendingSeconds>=ANALYTICS_FLUSH_SECONDS)flush();
+  },1000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush({beacon:true})});
+  window.addEventListener('pagehide',()=>{flush({beacon:true});destroyed=true;clearInterval(timer)},{once:true});
+}
+
 
 
 function applyTextOverrides(rows){for(const row of rows||[]){try{document.querySelectorAll(row.selector).forEach(node=>{if(node instanceof HTMLInputElement||node instanceof HTMLTextAreaElement){node.placeholder=row.value}else node.textContent=row.value})}catch{}}}
@@ -660,7 +701,7 @@ async function boot() {
   finally {
     clearTimeout(loaderFallback);
     loader?.classList.add('loaded');
-    track(location.pathname);
+    startAnalytics(location.pathname||'/');
   }
   disableLegacyServiceWorker();
 }
