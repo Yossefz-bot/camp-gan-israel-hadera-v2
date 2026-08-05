@@ -388,7 +388,7 @@ function initForms() {
     const form = $(formSelector); if(!form)return;
     form.addEventListener('submit',async event=>{
       event.preventDefault(); const button=$('button[type="submit"]',form),status=$('.form-status',form); button.disabled=true; status.textContent='שולח...'; status.className='form-status';
-      try{ const values=Object.fromEntries(new FormData(form)); const payload=transform(values,form); const data=await fetchJson(endpoint,{method:'POST',body:JSON.stringify(payload)}); status.textContent=data.message||'נשלח בהצלחה';status.classList.add('success');form.reset();successAction?.();toast(data.message||'נשלח בהצלחה'); }
+      try{ const values=Object.fromEntries(new FormData(form)); const payload=transform(values,form); const data=await fetchJson(endpoint,{method:'POST',body:JSON.stringify(payload)}); const actionKey=endpoint.replace('/api/',''); window.CampAnalytics?.content('action',actionKey,endpoint==='/api/contact'?'יצירת קשר':endpoint==='/api/subscribe'?'הרשמה לעדכונים':'שליחת תגובה','submit'); status.textContent=data.message||'נשלח בהצלחה';status.classList.add('success');form.reset();successAction?.();toast(data.message||'נשלח בהצלחה'); }
       catch(error){status.textContent=error.message;status.classList.add('error');toast(error.message,'error');}
       finally{button.disabled=false;}
     });
@@ -623,105 +623,44 @@ function startCountdown(target) {
   const update=()=>{const diff=Math.max(0,date-Date.now());const days=Math.floor(diff/86400000),hours=Math.floor(diff/3600000)%24,minutes=Math.floor(diff/60000)%60,seconds=Math.floor(diff/1000)%60;setText('#count-days',String(days).padStart(2,'0'));setText('#count-hours',String(hours).padStart(2,'0'));setText('#count-minutes',String(minutes).padStart(2,'0'));setText('#count-seconds',String(seconds).padStart(2,'0'));if(diff<=0)clearInterval(timer);};update();const timer=setInterval(update,1000);
 }
 
-const ANALYTICS_EXCLUDE_KEY='camp-analytics-exclude';
-const ANALYTICS_VISITOR_KEY='camp-analytics-visitor-id';
-const ANALYTICS_VIEW_WINDOW_MS=30*60*1000;
-const ANALYTICS_FLUSH_SECONDS=30;
-const ANALYTICS_PRESENCE_SECONDS=20;
-
-function analyticsIsExcluded(){
-  try{return localStorage.getItem(ANALYTICS_EXCLUDE_KEY)==='1'}catch{return false}
-}
-
-function analyticsVisitorId(){
-  try{
-    let id=localStorage.getItem(ANALYTICS_VISITOR_KEY)||'';
-    if(!/^[a-z0-9-]{16,80}$/i.test(id)){
-      id=crypto.randomUUID?.()||`${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-      localStorage.setItem(ANALYTICS_VISITOR_KEY,id);
-    }
-    return id;
-  }catch{
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-  }
-}
-
-function analyticsViewStorageKey(page){
-  return `camp-analytics-view:${String(page||'/')}`;
-}
-
-function analyticsShouldCountView(page){
-  try{
-    const key=analyticsViewStorageKey(page),now=Date.now(),previous=Number(localStorage.getItem(key)||0);
-    if(previous>0&&now-previous<ANALYTICS_VIEW_WINDOW_MS)return false;
-    localStorage.setItem(key,String(now));
-    return true;
-  }catch{return true}
-}
-
-function analyticsBody(page,event,value=1,visitorId=''){
-  return JSON.stringify({page:String(page||'/'),event:String(event||'view'),value:Number(value)||1,visitor_id:visitorId});
-}
-
-async function sendAnalyticsEvent(page,event='view',value=1,{beacon=false,visitorId=''}={}){
-  if(analyticsIsExcluded())return;
-  const body=analyticsBody(page,event,value,visitorId);
-  if(beacon&&navigator.sendBeacon){
-    try{
-      const sent=navigator.sendBeacon('/api/track',new Blob([body],{type:'application/json'}));
-      if(sent)return;
-    }catch{}
-  }
-  try{
-    await fetch('/api/track',{method:'POST',headers:{'content-type':'application/json'},body,keepalive:true,credentials:'same-origin'});
-  }catch{}
-}
-
-function startAnalytics(page='/'){
-  const pageKey=String(page||'/');
-  if(analyticsIsExcluded())return;
-
-  const visitorId=analyticsVisitorId();
-  if(analyticsShouldCountView(pageKey))sendAnalyticsEvent(pageKey,'view',1);
-
-  const presence=()=>{
-    if(document.visibilityState==='visible')sendAnalyticsEvent(pageKey,'presence',1,{visitorId});
-  };
-  presence();
-
-  let pendingSeconds=0,destroyed=false;
-  const flush=({beacon=false}={})=>{
-    if(pendingSeconds<1||destroyed)return;
-    const seconds=Math.min(60,pendingSeconds);
-    pendingSeconds-=seconds;
-    sendAnalyticsEvent(pageKey,'engaged_seconds',seconds,{beacon});
-    if(pendingSeconds>0)flush({beacon});
-  };
-
-  const timeTimer=setInterval(()=>{
-    if(document.visibilityState==='visible')pendingSeconds+=1;
-    if(pendingSeconds>=ANALYTICS_FLUSH_SECONDS)flush();
-  },1000);
-
-  const presenceTimer=setInterval(presence,ANALYTICS_PRESENCE_SECONDS*1000);
-
-  document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='hidden')flush({beacon:true});
-    else presence();
-  });
-
-  window.addEventListener('pagehide',()=>{
-    flush({beacon:true});
-    destroyed=true;
-    clearInterval(timeTimer);
-    clearInterval(presenceTimer);
-  },{once:true});
-}
-
-
-
 function applyTextOverrides(rows){for(const row of rows||[]){try{document.querySelectorAll(row.selector).forEach(node=>{if(node instanceof HTMLInputElement||node instanceof HTMLTextAreaElement){node.placeholder=row.value}else node.textContent=row.value})}catch{}}}
 
+
+
+function analyticsMediaKeyFromUrl(value){
+  const text=String(value||'').split(/[?#]/)[0];
+  return text.split('/').filter(Boolean).pop()||text||'media';
+}
+
+function initContentAnalytics(){
+  const analytics=window.CampAnalytics;
+  if(!analytics)return;
+
+  const bindVideo=video=>{
+    if(video.dataset.analyticsBound==='1')return;
+    const host=video.closest('#hero-media,#story-photo,.hero-slide,.latest-media');
+    const slot=host?.id==='hero-media'?'homepage-hero':host?.id==='story-photo'?'homepage-story':host?.classList.contains('latest-media')?'homepage-latest':analyticsMediaKeyFromUrl(video.currentSrc||video.src);
+    const label=host?.id==='hero-media'?'סרטון ראשי בדף הבית':host?.id==='story-photo'?'סרטון הסיפור בדף הבית':video.getAttribute('aria-label')||document.title;
+    analytics.bindMedia(video,{type:'video',key:()=>slot,label:()=>label});
+  };
+
+  document.querySelectorAll('video').forEach(bindVideo);
+  const observer=new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{
+    if(!(node instanceof Element))return;
+    if(node.matches('video'))bindVideo(node);
+    node.querySelectorAll?.('video').forEach(bindVideo);
+  })));
+  observer.observe(document.body,{childList:true,subtree:true});
+
+  const audio=$('#audio-player');
+  if(audio){
+    analytics.bindMedia(audio,{
+      type:'audio',
+      key:()=>{const song=state.songs[state.currentTrack]||{};return String(song.id||song.object_key||analyticsMediaKeyFromUrl(audio.currentSrc||audio.src)||'song')},
+      label:()=>{const song=state.songs[state.currentTrack]||{};return song.title||song.original_name||'המנון הקעמפ'}
+    });
+  }
+}
 
 function stabilizeMobileViewport(){
   const apply=()=>{
@@ -754,7 +693,8 @@ async function boot() {
   finally {
     clearTimeout(loaderFallback);
     loader?.classList.add('loaded');
-    startAnalytics(location.pathname||'/');
+    window.CampAnalytics?.start(location.pathname||'/');
+    initContentAnalytics();
   }
   disableLegacyServiceWorker();
 }

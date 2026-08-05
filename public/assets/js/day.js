@@ -1,5 +1,5 @@
 // Gallery stable build v13.2.0
-const state={slug:'',day:null,media:[],visible:[],nextOffset:0,kind:'all',favorites:new Set(JSON.parse(localStorage.getItem('camp-favorites')||'[]')),selection:new Set(),selectionMode:false,lightboxIndex:0};
+const state={slug:'',day:null,media:[],visible:[],nextOffset:0,kind:'all',favorites:new Set(JSON.parse(localStorage.getItem('camp-favorites')||'[]')),selection:new Set(),selectionMode:false,lightboxIndex:0,analyticsOpened:new Set(),analyticsGalleryOpened:false,analyticsGalleryCompleted:false};
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const escapeHtml=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
 const formatNumber=v=>new Intl.NumberFormat('he-IL').format(Number(v||0));
@@ -31,13 +31,13 @@ function applyFilter(){state.visible=state.kind==='all'?state.media:state.media.
 function bindTiles(){
   $$('.media-tile').forEach(node=>{
     const id=Number(node.dataset.id),index=Number(node.dataset.index);
-    node.addEventListener('click',event=>{if(event.target.closest('a'))return;if(event.target.closest('.favorite-button')){event.stopPropagation();toggleFavorite(id);return}if(state.selectionMode){toggleSelection(id);return}openLightbox(index)});
+    node.addEventListener('click',event=>{if(event.target.closest('a')){trackDayContent('download');return}if(event.target.closest('.favorite-button')){event.stopPropagation();toggleFavorite(id);return}if(state.selectionMode){toggleSelection(id);return}openLightbox(index)});
   });
 }
-function toggleFavorite(id){state.favorites.has(id)?state.favorites.delete(id):state.favorites.add(id);saveFavorites();applyFilter()}
+function toggleFavorite(id){const adding=!state.favorites.has(id);adding?state.favorites.add(id):state.favorites.delete(id);if(adding)trackDayContent('favorite');saveFavorites();applyFilter()}
 function toggleSelection(id){state.selection.has(id)?state.selection.delete(id):state.selection.add(id);updateCounts();applyFilter();const bar=$('#selection-bar');if(bar)bar.classList.toggle('is-hidden',!state.selectionMode)}
-function openLightbox(index){state.lightboxIndex=index;renderLightbox();const dialog=$('#lightbox');if(dialog&&typeof dialog.showModal==='function')dialog.showModal()}
-function renderLightbox(){const item=state.visible[state.lightboxIndex];if(!item)return;const stage=$('#lightbox-stage');if(!stage)return;stage.innerHTML=item.kind==='video'?`<video src="${item.url}" controls autoplay playsinline></video>`:`<img src="${item.url}" alt="${escapeHtml(item.alt_text||item.title||'')}">`;setText('#lightbox-title',item.title||item.original_name);setText('#lightbox-caption',item.caption||'');const download=$('#lightbox-download'),favorite=$('#lightbox-favorite');if(download)download.href=item.download_url;if(favorite)favorite.classList.toggle('active',state.favorites.has(item.id));}
+function openLightbox(index){state.lightboxIndex=index;if(!state.analyticsGalleryOpened){state.analyticsGalleryOpened=true;trackDayContent('open')}renderLightbox();const dialog=$('#lightbox');if(dialog&&typeof dialog.showModal==='function')dialog.showModal()}
+function renderLightbox(){const item=state.visible[state.lightboxIndex];if(!item)return;const stage=$('#lightbox-stage');if(!stage)return;stage.innerHTML=item.kind==='video'?`<video src="${item.url}" controls autoplay playsinline></video>`:`<img src="${item.url}" alt="${escapeHtml(item.alt_text||item.title||'')}">`;if(!state.analyticsOpened.has(item.id)){state.analyticsOpened.add(item.id);trackDayContent(item.kind==='video'?'video_open':'item_open')}if(state.visible.length&&state.lightboxIndex===state.visible.length-1&&!state.analyticsGalleryCompleted){state.analyticsGalleryCompleted=true;trackDayContent('complete')}setText('#lightbox-title',item.title||item.original_name);setText('#lightbox-caption',item.caption||'');const download=$('#lightbox-download'),favorite=$('#lightbox-favorite');if(download){download.href=item.download_url;download.onclick=()=>trackDayContent('download')}if(favorite)favorite.classList.toggle('active',state.favorites.has(item.id));}
 function moveLightbox(delta){if(!state.visible.length)return;state.lightboxIndex=(state.lightboxIndex+delta+state.visible.length)%state.visible.length;renderLightbox()}
 function initLightbox(){
   const dialog=$('#lightbox'),close=$('#lightbox-close'),prev=$('#lightbox-prev'),next=$('#lightbox-next'),favorite=$('#lightbox-favorite'),stage=$('#lightbox-stage');
@@ -57,108 +57,39 @@ function initControls(){
   if(selectionMode)selectionMode.onclick=()=>{state.selectionMode=!state.selectionMode;selectionMode.classList.toggle('active',state.selectionMode);if(selectionBar)selectionBar.classList.toggle('is-hidden',!state.selectionMode);if(!state.selectionMode)state.selection.clear();updateCounts();applyFilter()};
   if(clearSelection)clearSelection.onclick=()=>{if(selectionMode)selectionMode.click();else{state.selection.clear();updateCounts();applyFilter()}};
   if(selectAll)selectAll.onclick=()=>{state.visible.forEach(i=>state.selection.add(i.id));updateCounts();applyFilter()};
-  if(downloadSelected)downloadSelected.onclick=()=>{const selected=state.media.filter(i=>state.selection.has(i.id));if(!selected.length)return toast('לא נבחרו תמונות','error');selected.slice(0,20).forEach((item,index)=>setTimeout(()=>{const a=document.createElement('a');a.href=item.download_url;a.download='';document.body.append(a);a.click();a.remove()},index*350));if(selected.length>20)toast('הדפדפן מאפשר עד 20 הורדות בכל פעם','error');else toast('ההורדות התחילו')};
+  if(downloadSelected)downloadSelected.onclick=()=>{const selected=state.media.filter(i=>state.selection.has(i.id));if(!selected.length)return toast('לא נבחרו תמונות','error');selected.slice(0,20).forEach((item,index)=>setTimeout(()=>{const a=document.createElement('a');a.href=item.download_url;a.download='';document.body.append(a);a.click();a.remove()},index*350));trackDayContent('download',Math.min(selected.length,20));if(selected.length>20)toast('הדפדפן מאפשר עד 20 הורדות בכל פעם','error');else toast('ההורדות התחילו')};
   if(favoritesToggle)favoritesToggle.onclick=()=>{state.kind='all';state.visible=state.media.filter(i=>state.favorites.has(i.id));const grid=$('#media-grid'),empty=$('#media-empty');if(grid)grid.innerHTML=state.visible.map(tile).join('');if(empty)empty.classList.toggle('is-hidden',state.visible.length>0);bindTiles();toast(state.visible.length?`מוצגות ${state.visible.length} תמונות מועדפות`:'עדיין לא סימנת מועדפים',state.visible.length?'success':'error')};
-  if(shareDay)shareDay.onclick=async()=>{const data={title:state.day?.title||document.title,text:state.day?.description||'',url:location.href};try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(location.href);toast('הקישור הועתק')}}catch{}};
+  if(shareDay)shareDay.onclick=async()=>{trackDayContent('share');const data={title:state.day?.title||document.title,text:state.day?.description||'',url:location.href};try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(location.href);toast('הקישור הועתק')}}catch{}};
 }
 function initTheme(){const stored=localStorage.getItem('camp-theme');if(stored==='dark'||(!stored&&matchMedia('(prefers-color-scheme:dark)').matches))document.body.classList.add('dark');const toggle=$('#theme-toggle');if(toggle)toggle.onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('camp-theme',document.body.classList.contains('dark')?'dark':'light')}}
-const ANALYTICS_EXCLUDE_KEY='camp-analytics-exclude';
-const ANALYTICS_VISITOR_KEY='camp-analytics-visitor-id';
-const ANALYTICS_VIEW_WINDOW_MS=30*60*1000;
-const ANALYTICS_FLUSH_SECONDS=30;
-const ANALYTICS_PRESENCE_SECONDS=20;
 
-function analyticsIsExcluded(){
-  try{return localStorage.getItem(ANALYTICS_EXCLUDE_KEY)==='1'}catch{return false}
-}
+function dayAnalyticsLabel(){return state.day?.title||`גלריה ${state.slug}`}
+function dayAnalyticsKey(){return `day-${state.slug}`}
+function trackDayContent(event,value=1){window.CampAnalytics?.content('gallery',dayAnalyticsKey(),dayAnalyticsLabel(),event,value)}
 
-function analyticsVisitorId(){
-  try{
-    let id=localStorage.getItem(ANALYTICS_VISITOR_KEY)||'';
-    if(!/^[a-z0-9-]{16,80}$/i.test(id)){
-      id=crypto.randomUUID?.()||`${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-      localStorage.setItem(ANALYTICS_VISITOR_KEY,id);
-    }
-    return id;
-  }catch{
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-  }
-}
-
-function analyticsViewStorageKey(page){
-  return `camp-analytics-view:${String(page||'/')}`;
-}
-
-function analyticsShouldCountView(page){
-  try{
-    const key=analyticsViewStorageKey(page),now=Date.now(),previous=Number(localStorage.getItem(key)||0);
-    if(previous>0&&now-previous<ANALYTICS_VIEW_WINDOW_MS)return false;
-    localStorage.setItem(key,String(now));
-    return true;
-  }catch{return true}
-}
-
-function analyticsBody(page,event,value=1,visitorId=''){
-  return JSON.stringify({page:String(page||'/'),event:String(event||'view'),value:Number(value)||1,visitor_id:visitorId});
-}
-
-async function sendAnalyticsEvent(page,event='view',value=1,{beacon=false,visitorId=''}={}){
-  if(analyticsIsExcluded())return;
-  const body=analyticsBody(page,event,value,visitorId);
-  if(beacon&&navigator.sendBeacon){
-    try{
-      const sent=navigator.sendBeacon('/api/track',new Blob([body],{type:'application/json'}));
-      if(sent)return;
-    }catch{}
-  }
-  try{
-    await fetch('/api/track',{method:'POST',headers:{'content-type':'application/json'},body,keepalive:true,credentials:'same-origin'});
-  }catch{}
-}
-
-function startAnalytics(page='/'){
-  const pageKey=String(page||'/');
-  if(analyticsIsExcluded())return;
-
-  const visitorId=analyticsVisitorId();
-  if(analyticsShouldCountView(pageKey))sendAnalyticsEvent(pageKey,'view',1);
-
-  const presence=()=>{
-    if(document.visibilityState==='visible')sendAnalyticsEvent(pageKey,'presence',1,{visitorId});
+function initDayContentAnalytics(){
+  const analytics=window.CampAnalytics;
+  if(!analytics)return;
+  const bind=video=>{
+    if(video.dataset.analyticsBound==='1')return;
+    const inLightbox=Boolean(video.closest('#lightbox-stage'));
+    const item=state.visible[state.lightboxIndex]||{};
+    analytics.bindMedia(video,{
+      type:'video',
+      key:()=>inLightbox?`media-${item.id||'lightbox'}`:`${dayAnalyticsKey()}-summary`,
+      label:()=>inLightbox?(item.title||item.original_name||dayAnalyticsLabel()):`${dayAnalyticsLabel()} — סרטון סיכום`
+    });
   };
-  presence();
-
-  let pendingSeconds=0,destroyed=false;
-  const flush=({beacon=false}={})=>{
-    if(pendingSeconds<1||destroyed)return;
-    const seconds=Math.min(60,pendingSeconds);
-    pendingSeconds-=seconds;
-    sendAnalyticsEvent(pageKey,'engaged_seconds',seconds,{beacon});
-    if(pendingSeconds>0)flush({beacon});
-  };
-
-  const timeTimer=setInterval(()=>{
-    if(document.visibilityState==='visible')pendingSeconds+=1;
-    if(pendingSeconds>=ANALYTICS_FLUSH_SECONDS)flush();
-  },1000);
-
-  const presenceTimer=setInterval(presence,ANALYTICS_PRESENCE_SECONDS*1000);
-
-  document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='hidden')flush({beacon:true});
-    else presence();
-  });
-
-  window.addEventListener('pagehide',()=>{
-    flush({beacon:true});
-    destroyed=true;
-    clearInterval(timeTimer);
-    clearInterval(presenceTimer);
-  },{once:true});
+  document.querySelectorAll('video').forEach(bind);
+  const observer=new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{
+    if(!(node instanceof Element))return;
+    if(node.matches('video'))bind(node);
+    node.querySelectorAll?.('video').forEach(bind);
+  })));
+  observer.observe(document.body,{childList:true,subtree:true});
 }
-
 
 async function applyRemoteTextOverrides(){try{const data=await fetchJson('/api/texts');for(const row of data.overrides||[]){try{document.querySelectorAll(row.selector).forEach(node=>{if(node instanceof HTMLInputElement||node instanceof HTMLTextAreaElement)node.placeholder=row.value;else node.textContent=row.value})}catch{}}}catch{}}
 
-async function boot(){setText('#current-year',new Date().getFullYear());state.slug=new URLSearchParams(location.search).get('slug')||'';if(!state.slug){location.href='/#galleries';return}initTheme();initLightbox();initControls();updateCounts();try{await loadMedia(true);await applyRemoteTextOverrides();startAnalytics(`day/${state.slug}`)}catch(error){toast(error.message,'error');const grid=$('#media-grid'),empty=$('#media-empty');if(grid)grid.innerHTML='';if(empty)empty.classList.remove('is-hidden')}}
+async function boot(){setText('#current-year',new Date().getFullYear());state.slug=new URLSearchParams(location.search).get('slug')||'';if(!state.slug){location.href='/#galleries';return}initTheme();initLightbox();initControls();updateCounts();try{await loadMedia(true);await applyRemoteTextOverrides();window.CampAnalytics?.start(`day/${state.slug}`);initDayContentAnalytics()}catch(error){toast(error.message,'error');const grid=$('#media-grid'),empty=$('#media-empty');if(grid)grid.innerHTML='';if(empty)empty.classList.remove('is-hidden')}}
 document.addEventListener('DOMContentLoaded',boot);

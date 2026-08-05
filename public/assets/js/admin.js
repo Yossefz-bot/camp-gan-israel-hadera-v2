@@ -1,5 +1,5 @@
 // Admin V14 Pro
-const state={csrf:'',view:'dashboard',textOverrides:[],days:[],media:[],mediaOffset:0,mediaTotal:0,mediaSelected:new Set(),settings:{},announcements:[],testimonials:[],subscribers:[],contacts:[],slides:[],newsletters:[],whatsappRecipients:[],whatsappIndex:0,whatsappOpened:new Set(),health:null};
+const state={analyticsData:null,analyticsMetric:'page_views',analyticsTab:'overview',csrf:'',view:'dashboard',textOverrides:[],days:[],media:[],mediaOffset:0,mediaTotal:0,mediaSelected:new Set(),settings:{},announcements:[],testimonials:[],subscribers:[],contacts:[],slides:[],newsletters:[],whatsappRecipients:[],whatsappIndex:0,whatsappOpened:new Set(),health:null};
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const escapeHtml=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
 const formatNumber=v=>new Intl.NumberFormat('he-IL').format(Number(v||0));
@@ -258,32 +258,168 @@ function formatAnalyticsDuration(value){
   if(seconds<3600)return `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')} דק׳`;
   return `${Math.floor(seconds/3600)}:${String(Math.floor((seconds%3600)/60)).padStart(2,'0')} שע׳`;
 }
-function analyticsPageLabel(pageKey){const key=String(pageKey||'/');if(key==='/'||key==='index')return 'דף הבית';if(key.startsWith('day/'))return `גלריה — ${key.slice(4)}`;return key}
-function analyticsEventLabel(eventKey){return({share:'שיתופים',contact:'פניות',subscribe:'הרשמות'})[eventKey]||eventKey}
-async function loadAnalytics(){
-  const days=$('#analytics-days').value||30,data=await api(`/api/admin/analytics?days=${days}`);
-  const totalViews=Number(data.total_views||0),totalTime=Number(data.total_engaged_seconds||0),averageTime=Number(data.average_engaged_seconds||0),active=Number(data.active_connections||0);
-  setText('#analytics-total',`${formatNumber(totalViews)} צפיות · ${formatAnalyticsDuration(totalTime)} זמן צפייה`);
-  setText('#analytics-total-views',formatNumber(totalViews));
-  setText('#analytics-total-time',formatAnalyticsDuration(totalTime));
-  setText('#analytics-average-time',formatAnalyticsDuration(averageTime));
-  setText('#analytics-active-now',formatNumber(active));
-  setText('#analytics-device-status','לא נספר');
-  renderChart(data.timeline,Number(days));
-  const max=Math.max(1,...data.pages.map(page=>Number(page.views)));
-  $('#top-pages').innerHTML=data.pages.length?data.pages.map((page,index)=>{const views=Number(page.views||0),seconds=Number(page.engaged_seconds||0),average=Number(page.average_seconds||0);return `<div class="rank-item analytics-rank-item"><span class="rank-number">${index+1}</span><div class="analytics-page-copy"><strong>${escapeHtml(analyticsPageLabel(page.page_key))}</strong><small>${formatNumber(views)} צפיות · ${formatAnalyticsDuration(seconds)} סה״כ · ${formatAnalyticsDuration(average)} ממוצע</small><div class="rank-bar"><span style="width:${views/max*100}%"></span></div></div><b>${formatNumber(views)}</b></div>`}).join(''):'<div class="admin-empty">עוד אין נתוני צפייה</div>';
+
+function analyticsPageLabel(pageKey,pageTitle=''){
+  const title=String(pageTitle||'').trim();
+  if(title&&!/^https?:|^\//.test(title))return title.replace(/\s*\|\s*קעמפ גן ישראל חדרה\s*$/,'');
+  const key=String(pageKey||'/');
+  if(key==='/'||key==='index')return 'דף הבית';
+  if(key.startsWith('day/'))return `גלריה — ${key.slice(4)}`;
+  return key;
+}
+
+function analyticsSourceLabel(value){return({direct:'כניסה ישירה',google:'Google',whatsapp:'WhatsApp',facebook:'Facebook',instagram:'Instagram',telegram:'Telegram',other:'אתר אחר'})[value]||value||'לא ידוע'}
+function analyticsDeviceLabel(value){return({mobile:'טלפון',desktop:'מחשב',tablet:'טאבלט',unknown:'לא ידוע'})[value]||value}
+function analyticsDeviceIcon(value){return({mobile:'📱',desktop:'💻',tablet:'▣',unknown:'❔'})[value]||'🔗'}
+function analyticsPercent(value){return `${Math.round(Number(value)||0)}%`}
+
+function setAnalyticsChange(selector,item,{inverse=false}={}){
+  const node=$(selector);if(!node)return;
+  const delta=Number(item?.delta||0),good=inverse?delta<=0:delta>=0;
+  node.className=`analytics-change ${good?'positive':'negative'}`;
+  node.textContent=`${delta>0?'↑':delta<0?'↓':'•'} ${Math.abs(delta)}% מהתקופה הקודמת`;
+}
+
+function activateAnalyticsTab(tab){
+  state.analyticsTab=tab;
+  $$('[data-analytics-tab]').forEach(button=>button.classList.toggle('active',button.dataset.analyticsTab===tab));
+  $$('[data-analytics-panel]').forEach(panel=>panel.classList.toggle('active',panel.dataset.analyticsPanel===tab));
+}
+
+function renderAnalyticsSummary(data){
+  const summary=data.summary||{},comparison=data.comparison||{};
+  setText('#analytics-visitors',formatNumber(summary.unique_visitors));
+  setText('#analytics-sessions',formatNumber(summary.sessions));
+  setText('#analytics-pageviews',formatNumber(summary.page_views));
+  setText('#analytics-average-session',formatAnalyticsDuration(summary.average_session_seconds));
+  setText('#analytics-returning',analyticsPercent(summary.returning_rate));
+  setText('#analytics-quick-exit',analyticsPercent(summary.quick_exit_rate));
+  setText('#analytics-active-now',formatNumber(summary.active_connections));
+  setText('#analytics-legacy-views',formatNumber(data.legacy_views||0));
+  setText('#analytics-period-summary',`${formatNumber(summary.unique_visitors)} מבקרים · ${formatNumber(summary.sessions)} ביקורים · ${formatAnalyticsDuration(summary.engaged_seconds)} זמן פעיל`);
+  setAnalyticsChange('#analytics-change-visitors',comparison.unique_visitors);
+  setAnalyticsChange('#analytics-change-sessions',comparison.sessions);
+  setAnalyticsChange('#analytics-change-pageviews',comparison.page_views);
+  setAnalyticsChange('#analytics-change-time',comparison.average_session_seconds);
+  setAnalyticsChange('#analytics-change-returning',comparison.returning_rate);
+  setAnalyticsChange('#analytics-change-bounce',comparison.quick_exit_rate,{inverse:true});
+}
+
+function renderAnalyticsPages(data){
+  const body=$('#analytics-pages-body');if(!body)return;
+  body.innerHTML=data.pages?.length?data.pages.map(page=>`<tr>
+    <td><strong>${escapeHtml(analyticsPageLabel(page.page_key,page.page_title))}</strong><small>${escapeHtml(page.page_key)}</small></td>
+    <td>${formatNumber(page.visitors)}</td>
+    <td>${formatNumber(page.sessions)}</td>
+    <td>${formatNumber(page.page_views)}</td>
+    <td>${formatAnalyticsDuration(page.average_seconds)}</td>
+    <td>${formatAnalyticsDuration(page.engaged_seconds)}</td>
+    <td><span class="analytics-meter"><i style="width:${Math.min(100,Number(page.average_scroll)||0)}%"></i></span>${analyticsPercent(page.average_scroll)}</td>
+    <td><span class="quick-exit ${Number(page.quick_exit_rate)<=20?'good':Number(page.quick_exit_rate)>=45?'bad':''}">${analyticsPercent(page.quick_exit_rate)}</span></td>
+  </tr>`).join(''):'<tr><td colspan="8"><div class="admin-empty">הנתונים המפורטים יתחילו להופיע לאחר פריסת V24</div></td></tr>';
+}
+
+function contentMetric(item,key){return Number(item?.metrics?.[key]||0)}
+function contentCompletion(item,startKey='start'){const starts=contentMetric(item,startKey),complete=contentMetric(item,'complete');return starts?Math.round(complete/starts*100):0}
+
+function renderVideoContent(items){
+  const node=$('#analytics-videos');if(!node)return;
+  node.innerHTML=items?.length?items.map(item=>{const start=contentMetric(item,'start'),q25=contentMetric(item,'q25'),q50=contentMetric(item,'q50'),q75=contentMetric(item,'q75'),complete=contentMetric(item,'complete'),seconds=contentMetric(item,'watch_seconds');return `<article class="content-analytics-item"><div class="content-analytics-head"><strong>${escapeHtml(item.content_label)}</strong><b>${analyticsPercent(contentCompletion(item))} השלימו</b></div><div class="video-funnel"><span style="--value:100%"><i></i><small>${formatNumber(start)} התחילו</small></span><span style="--value:${start?q25/start*100:0}%"><i></i><small>${formatNumber(q25)} הגיעו ל־25%</small></span><span style="--value:${start?q50/start*100:0}%"><i></i><small>${formatNumber(q50)} הגיעו לחצי</small></span><span style="--value:${start?q75/start*100:0}%"><i></i><small>${formatNumber(q75)} הגיעו ל־75%</small></span><span style="--value:${start?complete/start*100:0}%"><i></i><small>${formatNumber(complete)} סיימו</small></span></div><footer>זמן צפייה: <strong>${formatAnalyticsDuration(seconds)}</strong></footer></article>`}).join(''):'<div class="admin-empty">עוד אין נתוני צפייה בסרטונים</div>';
+}
+
+function renderAudioContent(items){
+  const node=$('#analytics-audio');if(!node)return;
+  node.innerHTML=items?.length?items.map(item=>{const starts=contentMetric(item,'start'),complete=contentMetric(item,'complete'),seconds=contentMetric(item,'listen_seconds');return `<article class="compact-content-item"><span>🎵</span><div><strong>${escapeHtml(item.content_label)}</strong><small>${formatNumber(starts)} הפעלות · ${formatNumber(complete)} סיומים · ${formatAnalyticsDuration(seconds)} האזנה</small><span class="rank-bar"><i style="width:${starts?Math.min(100,complete/starts*100):0}%"></i></span></div><b>${analyticsPercent(contentCompletion(item))}</b></article>`}).join(''):'<div class="admin-empty">עוד אין נתוני האזנה</div>';
+}
+
+function renderGalleryContent(items){
+  const node=$('#analytics-galleries');if(!node)return;
+  node.innerHTML=items?.length?items.map(item=>{const open=contentMetric(item,'open'),complete=contentMetric(item,'complete'),itemsOpened=contentMetric(item,'item_open')+contentMetric(item,'video_open'),downloads=contentMetric(item,'download');return `<article class="compact-content-item"><span>📸</span><div><strong>${escapeHtml(item.content_label)}</strong><small>${formatNumber(open)} פתיחות · ${formatNumber(itemsOpened)} פריטים נצפו · ${formatNumber(downloads)} הורדות</small><span class="rank-bar"><i style="width:${open?Math.min(100,complete/open*100):0}%"></i></span></div><b>${open?analyticsPercent(complete/open*100):'0%'}</b></article>`}).join(''):'<div class="admin-empty">עוד אין נתוני גלריות</div>';
+}
+
+function renderActionContent(items){
+  const node=$('#analytics-actions');if(!node)return;
+  node.innerHTML=items?.length?items.map(item=>{const total=Object.entries(item.metrics||{}).filter(([key])=>!key.endsWith('_seconds')).reduce((sum,[,value])=>sum+Number(value||0),0);return `<article class="compact-content-item"><span>🎯</span><div><strong>${escapeHtml(item.content_label)}</strong><small>${escapeHtml(Object.entries(item.metrics||{}).map(([key,value])=>`${key}: ${formatNumber(value)}`).join(' · '))}</small></div><b>${formatNumber(total)}</b></article>`}).join(''):'<div class="admin-empty">עוד אין פעולות נוספות</div>';
+}
+
+function renderBreakdown(selector,items,labelFn,iconFn){
+  const node=$(selector);if(!node)return;
+  const max=Math.max(1,...(items||[]).map(item=>Number(item.sessions||0)));
+  node.innerHTML=items?.length?items.map(item=>{const key=item.source??item.device;return `<div class="breakdown-row"><span class="breakdown-icon">${iconFn?iconFn(key):'↗'}</span><div><strong>${escapeHtml(labelFn(key))}</strong><small>${formatNumber(item.visitors)} מבקרים · ${formatNumber(item.sessions)} ביקורים</small><span class="rank-bar"><i style="width:${Number(item.sessions||0)/max*100}%"></i></span></div><b>${formatNumber(item.sessions)}</b></div>`}).join(''):'<div class="admin-empty">עוד אין נתונים</div>';
+}
+
+function renderAnalyticsInsights(data){
+  const insights=[];
+  const topPage=data.pages?.[0];
+  if(topPage)insights.push(['🏆','העמוד המוביל',`${analyticsPageLabel(topPage.page_key,topPage.page_title)} עם ${formatNumber(topPage.page_views)} צפיות`]);
+  const source=data.sources?.[0];
+  if(source)insights.push(['↗','מקור הכניסה המרכזי',`${analyticsSourceLabel(source.source)} הביא ${formatNumber(source.sessions)} ביקורים`]);
+  const device=data.devices?.[0];
+  if(device)insights.push([analyticsDeviceIcon(device.device),'המכשיר הנפוץ',`${analyticsDeviceLabel(device.device)} — ${formatNumber(device.sessions)} ביקורים`]);
+  const video=(data.content?.videos||[]).filter(item=>contentMetric(item,'start')>0).sort((a,b)=>contentCompletion(b)-contentCompletion(a))[0];
+  if(video)insights.push(['🎬','הסרטון שמחזיק הכי טוב',`${video.content_label} — ${analyticsPercent(contentCompletion(video))} השלמה`]);
+  $('#analytics-insights').innerHTML=insights.length?insights.map(([icon,title,text])=>`<article><span>${icon}</span><div><strong>${escapeHtml(title)}</strong><small>${escapeHtml(text)}</small></div></article>`).join(''):'<div class="admin-empty">התובנות יופיעו לאחר הצטברות נתונים</div>';
+}
+
+function renderActivePages(data){
   $('#active-pages').innerHTML=data.active_pages?.length?data.active_pages.map(page=>`<div class="active-page-row"><span class="live-dot"></span><strong>${escapeHtml(analyticsPageLabel(page.page_key))}</strong><b>${formatNumber(page.active)}</b></div>`).join(''):'<div class="admin-empty">אין כרגע מבקרים פעילים</div>';
-  $('#event-stats').innerHTML=data.events.length?data.events.map(event=>`<div class="event-stat"><strong>${formatNumber(event.count)}</strong><small>${escapeHtml(analyticsEventLabel(event.event_key))}</small></div>`).join(''):'<div class="admin-empty">עוד אין אירועים נוספים</div>';
+}
+
+function renderAnalytics(data){
+  renderAnalyticsSummary(data);
+  renderAnalyticsChart();
+  renderAnalyticsPages(data);
+  renderVideoContent(data.content?.videos||[]);
+  renderAudioContent(data.content?.audio||[]);
+  renderGalleryContent(data.content?.galleries||[]);
+  renderActionContent(data.content?.actions||[]);
+  renderBreakdown('#analytics-sources',data.sources||[],analyticsSourceLabel);
+  renderBreakdown('#analytics-devices',data.devices||[],analyticsDeviceLabel,analyticsDeviceIcon);
+  renderAnalyticsInsights(data);
+  renderActivePages(data);
+}
+
+async function loadAnalytics(){
+  const days=$('#analytics-days')?.value||30;
+  const data=await api(`/api/admin/analytics?days=${days}`);
+  state.analyticsData=data;
+  renderAnalytics(data);
   clearTimeout(window._analyticsLiveTimer);
   window._analyticsLiveTimer=setTimeout(()=>{if(state.view==='analytics')loadAnalytics().catch(()=>{})},20000);
 }
-function renderChart(timeline,days){const canvas=$('#analytics-chart'),dpr=devicePixelRatio||1,width=canvas.clientWidth||700,height=240;canvas.width=width*dpr;canvas.height=height*dpr;const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,width,height);const values=timeline.map(x=>Number(x.views)),max=Math.max(1,...values);ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--line');ctx.lineWidth=1;for(let i=0;i<5;i++){const y=20+i*(height-50)/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke()}if(!values.length)return;const points=values.map((v,i)=>({x:20+i*(width-40)/Math.max(1,values.length-1),y:height-30-v/max*(height-60)}));ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--primary');ctx.lineWidth=3;ctx.lineJoin='round';ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--primary');points.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fill()})}
+
+function analyticsChartValue(row,metric){return Number(row?.[metric]||0)}
+function analyticsChartLabel(metric,value){return metric==='engaged_seconds'?formatAnalyticsDuration(value):formatNumber(value)}
+
+function renderAnalyticsChart(){
+  const data=state.analyticsData;if(!data)return;
+  const canvas=$('#analytics-chart');if(!canvas)return;
+  const metric=$('#analytics-metric')?.value||state.analyticsMetric||'page_views';
+  state.analyticsMetric=metric;
+  const timeline=data.timeline||[],dpr=devicePixelRatio||1,width=canvas.clientWidth||700,height=270;
+  canvas.width=width*dpr;canvas.height=height*dpr;
+  const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
+  const css=getComputedStyle(document.documentElement),line=css.getPropertyValue('--line').trim(),primary=css.getPropertyValue('--primary').trim(),muted=css.getPropertyValue('--muted').trim();
+  const values=timeline.map(row=>analyticsChartValue(row,metric)),max=Math.max(1,...values);
+  ctx.font='11px Arial';ctx.fillStyle=muted;ctx.textAlign='left';
+  for(let i=0;i<5;i++){
+    const ratio=1-i/4,y=24+i*(height-64)/4,value=Math.round(max*ratio);
+    ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(48,y);ctx.lineTo(width-10,y);ctx.stroke();ctx.fillText(analyticsChartLabel(metric,value),4,y+4);
+  }
+  if(!values.length)return;
+  const points=values.map((value,index)=>({x:55+index*(width-75)/Math.max(1,values.length-1),y:height-40-value/max*(height-75),value,row:timeline[index]}));
+  const gradient=ctx.createLinearGradient(0,30,0,height);gradient.addColorStop(0,`${primary}38`);gradient.addColorStop(1,`${primary}00`);
+  ctx.beginPath();points.forEach((point,index)=>index?ctx.lineTo(point.x,point.y):ctx.moveTo(point.x,point.y));ctx.lineTo(points.at(-1).x,height-40);ctx.lineTo(points[0].x,height-40);ctx.closePath();ctx.fillStyle=gradient;ctx.fill();
+  ctx.beginPath();points.forEach((point,index)=>index?ctx.lineTo(point.x,point.y):ctx.moveTo(point.x,point.y));ctx.strokeStyle=primary;ctx.lineWidth=3;ctx.lineJoin='round';ctx.stroke();
+  ctx.fillStyle=primary;points.forEach(point=>{ctx.beginPath();ctx.arc(point.x,point.y,4,0,Math.PI*2);ctx.fill()});
+  ctx.fillStyle=muted;ctx.textAlign='center';const step=Math.max(1,Math.ceil(points.length/7));points.forEach((point,index)=>{if(index%step===0||index===points.length-1){const date=new Date(`${point.row.day}T12:00:00Z`);ctx.fillText(`${date.getUTCDate()}/${date.getUTCMonth()+1}`,point.x,height-17)}});
+}
 
 async function loadHealth(){try{const data=await api('/api/admin/health');state.health=data;renderHealth(data)}catch(error){renderHealth({ok:false,checks:[{name:'המערכת',ok:false,detail:error.message}]})}}
 function renderHealth(data){$('#system-dot').className=`system-dot ${data.ok?'ok':'error'}`;const hero=$('#health-hero');hero.className=`health-hero ${data.ok?'ok':'error'}`;hero.innerHTML=`<span>${data.ok?'✅':'⚠️'}</span><div><h3>${data.ok?'המערכת פועלת מצוין':'נדרשת השלמת הגדרה'}</h3><p>${data.ok?'D1, R2 והאבטחה מחוברים ופועלים.':'עברו על הבדיקות והשלימו את הפריטים האדומים.'}</p></div>`;$('#health-grid').innerHTML=(data.checks||[]).map(c=>`<article class="health-card"><span>${c.ok?'✅':'❌'}</span><h3>${escapeHtml(c.name)}</h3><p>${escapeHtml(c.detail)}</p></article>`).join('')}
 
 function initTheme(){const stored=localStorage.getItem('camp-admin-theme');if(stored==='dark')document.body.classList.add('dark');$('#admin-theme').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('camp-admin-theme',document.body.classList.contains('dark')?'dark':'light');if(state.view==='analytics')loadAnalytics()}}
 function initMisc(){
-  $('#change-password-form')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;formStatus(form,'מעדכן...');try{const data=Object.fromEntries(new FormData(form));await api('/api/admin/password',{method:'POST',body:JSON.stringify(data)});form.reset();formStatus(form,'הסיסמה שונתה בהצלחה','success');toast('הסיסמה שונתה')}catch(error){formStatus(form,error.message,'error')}});$$('[data-close-dialog]').forEach(button=>button.onclick=()=>button.closest('dialog')?.close());$('#health-refresh').onclick=loadHealth;$('#analytics-days').onchange=loadAnalytics;window.addEventListener('resize',()=>{if(state.view==='analytics')clearTimeout(window._chartTimer),window._chartTimer=setTimeout(loadAnalytics,200)})}
+  $('#change-password-form')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;formStatus(form,'מעדכן...');try{const data=Object.fromEntries(new FormData(form));await api('/api/admin/password',{method:'POST',body:JSON.stringify(data)});form.reset();formStatus(form,'הסיסמה שונתה בהצלחה','success');toast('הסיסמה שונתה')}catch(error){formStatus(form,error.message,'error')}});$$('[data-close-dialog]').forEach(button=>button.onclick=()=>button.closest('dialog')?.close());$('#health-refresh').onclick=loadHealth;$('#analytics-days').onchange=loadAnalytics;$('#analytics-metric').onchange=renderAnalyticsChart;$$('[data-analytics-tab]').forEach(button=>button.onclick=()=>activateAnalyticsTab(button.dataset.analyticsTab));window.addEventListener('resize',()=>{if(state.view==='analytics')clearTimeout(window._chartTimer),window._chartTimer=setTimeout(renderAnalyticsChart,150)})}
 async function boot(){initAuth();initNavigation();initDayForm();initMedia();initSettings();initAnnouncements();initTestimonials();initSubscribers();initNewsletter();initContacts();initTheme();initMisc();try{const response=await fetch('/api/admin/session',{credentials:'same-origin'}),data=await response.json().catch(()=>({}));if(response.ok&&data.authenticated)await showApp(data);else showLogin()}catch{showLogin()}}
 document.addEventListener('DOMContentLoaded',boot);

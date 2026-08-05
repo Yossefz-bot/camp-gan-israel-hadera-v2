@@ -1,10 +1,15 @@
 {
-  "syntax": {
+  "version": "24.0.0",
+  "javascript_syntax": {
     "functions/api/track.js": {
       "ok": true,
       "error": ""
     },
     "functions/api/admin/analytics.js": {
+      "ok": true,
+      "error": ""
+    },
+    "public/assets/js/analytics.js": {
       "ok": true,
       "error": ""
     },
@@ -21,16 +26,25 @@
       "error": ""
     }
   },
+  "migration_sql": "PASS",
+  "sample_aggregation_queries": "PASS",
+  "admin_selector_integrity": "PASS",
   "features": {
-    "owner_exclusion_server": true,
-    "owner_exclusion_browser": true,
-    "view_dedup_30m": true,
-    "visible_engagement_time": true,
-    "active_heartbeat_20s": true,
-    "active_window_90s": true,
-    "unique_browser_connections": true,
-    "active_pages": true,
-    "auto_refresh_admin_20s": true,
-    "no_ip_storage": true
+    "unique_visitors": true,
+    "sessions": true,
+    "pageviews": true,
+    "returning_visitors": true,
+    "quick_exit_rate": true,
+    "per_page_engagement": true,
+    "scroll_depth": true,
+    "sources": true,
+    "devices": true,
+    "video_funnel": true,
+    "audio_engagement": true,
+    "gallery_engagement": true,
+    "period_comparison": true,
+    "active_connections": true,
+    "admin_exclusion_client_and_server": true,
+    "batched_download_counts": true
   }
 }
