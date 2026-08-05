@@ -624,45 +624,98 @@ function startCountdown(target) {
 }
 
 const ANALYTICS_EXCLUDE_KEY='camp-analytics-exclude';
+const ANALYTICS_VISITOR_KEY='camp-analytics-visitor-id';
 const ANALYTICS_VIEW_WINDOW_MS=30*60*1000;
 const ANALYTICS_FLUSH_SECONDS=30;
+const ANALYTICS_PRESENCE_SECONDS=20;
 
 function analyticsIsExcluded(){
   try{return localStorage.getItem(ANALYTICS_EXCLUDE_KEY)==='1'}catch{return false}
 }
-function analyticsViewStorageKey(page){return `camp-analytics-view:${String(page||'/')}`}
+
+function analyticsVisitorId(){
+  try{
+    let id=localStorage.getItem(ANALYTICS_VISITOR_KEY)||'';
+    if(!/^[a-z0-9-]{16,80}$/i.test(id)){
+      id=crypto.randomUUID?.()||`${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(ANALYTICS_VISITOR_KEY,id);
+    }
+    return id;
+  }catch{
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+function analyticsViewStorageKey(page){
+  return `camp-analytics-view:${String(page||'/')}`;
+}
+
 function analyticsShouldCountView(page){
   try{
     const key=analyticsViewStorageKey(page),now=Date.now(),previous=Number(localStorage.getItem(key)||0);
     if(previous>0&&now-previous<ANALYTICS_VIEW_WINDOW_MS)return false;
-    localStorage.setItem(key,String(now));return true;
+    localStorage.setItem(key,String(now));
+    return true;
   }catch{return true}
 }
-function analyticsPayload(page,event,value=1){return JSON.stringify({page:String(page||'/'),event:String(event||'view'),value:Number(value)||1})}
-async function sendAnalyticsEvent(page,event='view',value=1,{beacon=false}={}){
-  if(analyticsIsExcluded())return;
-  const body=analyticsPayload(page,event,value);
-  if(beacon&&navigator.sendBeacon){
-    try{const accepted=navigator.sendBeacon('/api/track',new Blob([body],{type:'application/json'}));if(accepted)return}catch{}
-  }
-  try{await fetch('/api/track',{method:'POST',headers:{'content-type':'application/json'},body,keepalive:true,credentials:'same-origin'})}catch{}
+
+function analyticsBody(page,event,value=1,visitorId=''){
+  return JSON.stringify({page:String(page||'/'),event:String(event||'view'),value:Number(value)||1,visitor_id:visitorId});
 }
+
+async function sendAnalyticsEvent(page,event='view',value=1,{beacon=false,visitorId=''}={}){
+  if(analyticsIsExcluded())return;
+  const body=analyticsBody(page,event,value,visitorId);
+  if(beacon&&navigator.sendBeacon){
+    try{
+      const sent=navigator.sendBeacon('/api/track',new Blob([body],{type:'application/json'}));
+      if(sent)return;
+    }catch{}
+  }
+  try{
+    await fetch('/api/track',{method:'POST',headers:{'content-type':'application/json'},body,keepalive:true,credentials:'same-origin'});
+  }catch{}
+}
+
 function startAnalytics(page='/'){
-  const pageKey=String(page||'/');if(analyticsIsExcluded())return;
+  const pageKey=String(page||'/');
+  if(analyticsIsExcluded())return;
+
+  const visitorId=analyticsVisitorId();
   if(analyticsShouldCountView(pageKey))sendAnalyticsEvent(pageKey,'view',1);
+
+  const presence=()=>{
+    if(document.visibilityState==='visible')sendAnalyticsEvent(pageKey,'presence',1,{visitorId});
+  };
+  presence();
+
   let pendingSeconds=0,destroyed=false;
   const flush=({beacon=false}={})=>{
     if(pendingSeconds<1||destroyed)return;
-    const seconds=Math.min(60,pendingSeconds);pendingSeconds-=seconds;
+    const seconds=Math.min(60,pendingSeconds);
+    pendingSeconds-=seconds;
     sendAnalyticsEvent(pageKey,'engaged_seconds',seconds,{beacon});
     if(pendingSeconds>0)flush({beacon});
   };
-  const timer=setInterval(()=>{
+
+  const timeTimer=setInterval(()=>{
     if(document.visibilityState==='visible')pendingSeconds+=1;
     if(pendingSeconds>=ANALYTICS_FLUSH_SECONDS)flush();
   },1000);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush({beacon:true})});
-  window.addEventListener('pagehide',()=>{flush({beacon:true});destroyed=true;clearInterval(timer)},{once:true});
+
+  const presenceTimer=setInterval(presence,ANALYTICS_PRESENCE_SECONDS*1000);
+
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='hidden')flush({beacon:true});
+    else presence();
+  });
+
+  window.addEventListener('pagehide',()=>{
+    flush({beacon:true});
+    destroyed=true;
+    clearInterval(timeTimer);
+    clearInterval(presenceTimer);
+  },{once:true});
 }
 
 
