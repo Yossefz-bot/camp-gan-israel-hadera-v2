@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ff6b16">
+  <meta name="camp-build" content="19.1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="description" content="גלריות, סרטונים, המנונים ועדכונים מקעמפ גן ישראל חדרה">
+  <meta name="keywords" content="קעמפ גן ישראל חדרה, גלריות קעמפ, קעמפ חב״ד">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="קעמפ גן ישראל חדרה">
+  <meta property="og:description" content="כל החוויות, התמונות והסרטונים של הקעמפ במקום אחד">
+  <title>קעמפ גן ישראל חדרה</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="./assets/css/main.css?v=24.0.0">
+  <script src="./assets/js/analytics.js?v=24.0.0" defer></script>
+  <script src="./assets/js/app.js?v=24.0.0" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">דלג לתוכן</a>
+  <div class="site-loader" id="site-loader" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <header class="site-header" id="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" aria-label="דף הבית">
+        <span class="brand-mark" id="brand-mark">GI</span>
+        <span class="brand-copy"><strong id="brand-name">קעמפ גן ישראל חדרה</strong><small id="brand-season">קיץ תשפ״ו</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="ניווט ראשי">
+        <a href="#galleries">גלריות</a><a href="#latest">היום האחרון</a><a href="#songs">המנונים</a><a href="#testimonials">הורים מספרים</a><a href="#updates">עדכונים</a><a href="#contact">יצירת קשר</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-button" id="search-open" aria-label="חיפוש בגלריות" title="חיפוש">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+        </button>
+        <button class="icon-button" id="theme-toggle" aria-label="החלפת מצב תצוגה" title="מצב תצוגה">
+          <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg>
+        </button>
+        <a class="button button-small registration-link is-hidden" id="header-registration" href="#">להרשמה</a>
+        <button class="menu-button" id="menu-button" aria-expanded="false" aria-controls="mobile-nav" aria-label="פתיחת תפריט"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="ניווט לטלפון">
+      <a href="#galleries">גלריות</a><a href="#latest">היום האחרון</a><a href="#songs">המנונים</a><a href="#testimonials">הורים מספרים</a><a href="#updates">עדכונים</a><a href="#contact">יצירת קשר</a>
+    </nav>
+  </header>
+
+  <aside class="announcement is-hidden" id="announcement" aria-live="polite">
+    <div class="container announcement-inner"><span class="announcement-icon">✦</span><div><strong id="announcement-title"></strong><p id="announcement-body"></p></div><a class="announcement-link is-hidden" id="announcement-link" href="#"></a><button id="announcement-close" aria-label="סגירת הודעה">×</button></div>
+  </aside>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-sky" aria-hidden="true"><span class="cloud cloud-a"></span><span class="cloud cloud-b"></span><span class="sun-orb"></span></div>
+      <div class="container hero-grid">
+        <div class="hero-copy reveal">
+          <span class="eyebrow" id="hero-kicker">קיץ של אנרגיה • חברות • שליחות</span>
+          <h1 id="hero-title">הקיץ מתחיל <em>כאן</em></h1>
+          <p id="hero-text">כל התמונות, הסרטונים, ההמנונים והרגעים הגדולים של קעמפ גן ישראל חדרה — במקום אחד.</p>
+          <div class="hero-actions"><a class="button button-primary" id="hero-primary" href="#galleries">לגלריות הקעמפ</a><a class="button button-ghost" id="hero-secondary" href="#latest"><span class="play-dot">▶</span> צפו בסרטון</a></div>
+          <div class="countdown is-hidden" id="countdown" aria-label="ספירה לאחור"><div><strong id="count-days">00</strong><span>ימים</span></div><div><strong id="count-hours">00</strong><span>שעות</span></div><div><strong id="count-minutes">00</strong><span>דקות</span></div><div><strong id="count-seconds">00</strong><span>שניות</span></div></div>
+          <div class="hero-trust"><span class="avatar-stack"><i>☀️</i><i>🏕️</i><i>⚽</i></span><span><strong>חוויה שרואים ומרגישים</strong><small>כל יום, כל רגע, כל החיוכים</small></span></div>
+        </div>
+        <div class="hero-visual reveal" data-delay="100">
+          <div class="hero-card-frame">
+            <div class="hero-media" id="hero-media"><div class="hero-placeholder"><span>🏕️</span><strong>קעמפ גן ישראל</strong><small>חדרה</small></div></div>
+            <span class="sticker sticker-orange">קיץ!</span><span class="sticker sticker-yellow">חוויה</span><span class="sticker sticker-green">ביחד</span>
+          </div>
+          <div class="camp-landscape" aria-hidden="true"><span class="hill hill-one"></span><span class="hill hill-two"></span><span class="tree tree-a">▲</span><span class="tree tree-b">▲</span><span class="tent">△</span><span class="flag">⚑</span></div>
+        </div>
+      </div>
+      <div class="hero-wave" aria-hidden="true"><svg viewBox="0 0 1440 120" preserveAspectRatio="none"><path d="M0 72C236 135 395 11 667 66c259 52 501 52 773-9v63H0z"></path></svg></div>
+    </section>
+
+    <section class="stats-strip" aria-label="נתוני הקעמפ">
+      <div class="container stats-grid">
+        <div class="stat-card"><span class="stat-icon">📅</span><strong id="stat-days">0</strong><small>ימי קעמפ</small></div>
+        <div class="stat-card"><span class="stat-icon">📸</span><strong id="stat-photos">0</strong><small>תמונות</small></div>
+        <div class="stat-card"><span class="stat-icon">🎬</span><strong id="stat-videos">0</strong><small>סרטונים</small></div>
+        <div class="stat-card"><span class="stat-icon">🎵</span><strong id="stat-songs">0</strong><small>המנונים</small></div>
+      </div>
+    </section>
+
+    <section class="section latest-section" id="latest">
+      <div class="container">
+        <div class="section-heading split-heading reveal"><div><span class="eyebrow">הרגעים הכי טריים</span><h2>מה חדש <em>בקעמפ?</em></h2></div><a class="text-link" href="#galleries">לכל הימים <span>←</span></a></div>
+        <div class="latest-card reveal" id="latest-card">
+          <div class="latest-media skeleton-block"></div><div class="latest-content"><span class="pill">היום האחרון</span><h3>הגלריה הבאה בדרך</h3><p>ברגע שיעלה יום חדש הוא יופיע כאן עם הסרטון והתמונות.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section galleries-section" id="galleries">
+      <div class="container">
+        <div class="section-heading centered reveal"><span class="eyebrow">פותחים אלבום</span><h2 id="gallery-title">הגלריות של <em>הקעמפ</em></h2><p id="gallery-text">כל יום מקבל מקום משלו — סרטון סיכום, תמונות ורגעים ששווה לחזור אליהם.</p></div>
+        <div class="gallery-toolbar reveal"><label class="search-field"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><input id="gallery-search" type="search" placeholder="חיפוש לפי יום או תאריך"></label><div class="filter-chips"><button class="chip active" data-filter="all">הכול</button><button class="chip" data-filter="photos">עם תמונות</button><button class="chip" data-filter="video">עם סרטון</button></div></div>
+        <div class="days-grid" id="days-grid" aria-live="polite">
+          <article class="day-card skeleton-card"></article><article class="day-card skeleton-card"></article><article class="day-card skeleton-card"></article>
+        </div>
+        <div class="empty-state is-hidden" id="days-empty"><span>📷</span><h3>עוד רגע זה מתמלא</h3><p>הימים והתמונות הראשונים יופיעו כאן מיד לאחר הפרסום.</p></div>
+      </div>
+    </section>
+
+    <section class="section story-section" id="story">
+      <div class="container story-grid">
+        <div class="story-visual reveal"><div class="story-photo" id="story-photo"><span class="story-placeholder">☀️</span></div><div class="story-badge"><strong>100%</strong><span>אווירת קעמפ</span></div><div class="doodle-arrow" aria-hidden="true">↙</div></div>
+        <div class="story-copy reveal" data-delay="100"><span class="eyebrow" id="story-kicker">הסיפור שלנו</span><h2 id="story-title">קיץ של רגעים <em>שלא שוכחים</em></h2><p id="story-text">קעמפ הוא הרבה יותר מפעילות. זו חוויה של חברות, שמחה, ערכים ושליחות שנשארת עם הילדים הרבה אחרי שהקיץ נגמר.</p><div class="story-features"><div><span>🤝</span><strong>חברות אמיתית</strong><small>בונים קשרים שנשארים</small></div><div><span>⚡</span><strong>אנרגיה בלי הפסקה</strong><small>כל יום מלא בתוכן</small></div><div><span>✨</span><strong>שליחות וערכים</strong><small>חוויה עם משמעות</small></div></div></div>
+      </div>
+    </section>
+
+    <section class="section songs-section" id="songs">
+      <div class="container">
+        <div class="section-heading centered reveal"><span class="eyebrow">מגבירים את הווליום</span><h2 id="songs-title">המנוני <em>הקעמפ</em></h2><p id="songs-text">כל השירים וההמנונים שמכניסים מיד לאווירה.</p></div>
+        <div class="music-player reveal" id="music-player">
+          <div class="album-art"><div class="record"><span id="record-center">GI</span></div><i class="music-note note-a">♪</i><i class="music-note note-b">♫</i></div>
+          <div class="player-main"><div class="now-playing"><span>מתנגן עכשיו</span><h3 id="track-title">בחרו המנון</h3><small id="track-subtitle">קעמפ גן ישראל חדרה</small></div><audio id="audio-player" preload="metadata"></audio><div class="progress-wrap"><span id="current-time">0:00</span><input id="audio-progress" type="range" min="0" max="100" value="0" aria-label="התקדמות השיר"><span id="duration-time">0:00</span></div><div class="player-controls"><button id="prev-track" aria-label="שיר קודם">⏮</button><button class="play-button" id="play-track" aria-label="ניגון">▶</button><button id="next-track" aria-label="שיר הבא">⏭</button><button id="loop-track" aria-label="חזרה על השיר">↻</button><label class="volume-control">🔊<input id="audio-volume" type="range" min="0" max="1" step="0.05" value="0.8" aria-label="עוצמת קול"></label></div></div>
+          <div class="playlist" id="playlist"><div class="playlist-empty"><span>🎵</span><p>ההמנונים יופיעו כאן לאחר ההעלאה.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section testimonials-section" id="testimonials">
+      <div class="container">
+        <div class="section-heading split-heading reveal"><div><span class="eyebrow">מילים מהלב</span><h2 id="testimonials-title">מה ההורים <em>מספרים</em></h2><p id="testimonials-text">תגובות אמיתיות מהמשפחות שחוו את הקעמפ איתנו.</p></div><button class="button button-ghost" id="testimonial-open">כתבו לנו תגובה</button></div>
+        <div class="testimonials-track reveal" id="testimonials-track"><article class="testimonial-card placeholder-card"><div class="stars">★★★★★</div><p>התגובות המאושרות יופיעו כאן.</p><footer><span class="testimonial-avatar">♥</span><div><strong>משפחות הקעמפ</strong><small>גן ישראל חדרה</small></div></footer></article></div>
+      </div>
+    </section>
+
+    <section class="section updates-section" id="updates">
+      <div class="container updates-card reveal">
+        <div class="updates-art" aria-hidden="true"><span class="mail-shape">✉</span><i>✦</i><i>●</i><i>▲</i></div>
+        <div class="updates-copy"><span class="eyebrow eyebrow-light">לא מפספסים כלום</span><h2 id="updates-title">נשארים מחוברים לקעמפ</h2><p id="updates-text">גלריות חדשות, סרטונים ועדכונים חשובים ישירות אליכם.</p></div>
+        <form class="updates-form" id="subscribe-form"><input class="honeypot" name="website" tabindex="-1" autocomplete="off"><label><span>שם</span><input name="name" required autocomplete="name" placeholder="השם שלכם"></label><label><span>טלפון</span><input name="phone" required inputmode="tel" autocomplete="tel" placeholder="050-0000000"></label><label><span>אימייל</span><input name="email" required type="email" autocomplete="email" placeholder="name@example.com"></label><label class="checkbox-row"><input name="consent" type="checkbox" required><span>אני מאשר/ת לקבל עדכונים מהקעמפ</span></label><button class="button button-light" type="submit">צרפו אותי לעדכונים</button><p class="form-status" aria-live="polite"></p></form>
+      </div>
+    </section>
+
+    <section class="section contact-section" id="contact">
+      <div class="container contact-grid">
+        <div class="contact-copy reveal"><span class="eyebrow">אנחנו כאן</span><h2 id="contact-title">יצירת <em>קשר</em></h2><p id="contact-text">לשאלות, הרשמה ופרטים נוספים — נשמח לדבר.</p><div class="contact-methods"><a id="contact-phone" class="is-hidden" href="#"><span>📞</span><div><small>טלפון</small><strong></strong></div></a><a id="contact-whatsapp" class="is-hidden" href="#"><span>💬</span><div><small>וואטסאפ</small><strong>שלחו הודעה</strong></div></a><a id="contact-email" class="is-hidden" href="#"><span>✉️</span><div><small>אימייל</small><strong></strong></div></a><div id="contact-address" class="is-hidden"><span>📍</span><div><small>כתובת</small><strong></strong></div></div></div><a class="button button-primary registration-link is-hidden" id="contact-registration" href="#">להרשמה לקעמפ</a></div>
+        <form class="contact-form reveal" data-delay="100" id="contact-form"><h3>השאירו פרטים</h3><p>שלחו לנו הודעה ונחזור אליכם.</p><input class="honeypot" name="website" tabindex="-1" autocomplete="off"><div class="form-row"><label><span>שם מלא</span><input name="name" required autocomplete="name"></label><label><span>טלפון</span><input name="phone" required inputmode="tel" autocomplete="tel" placeholder="050-0000000"></label></div><label><span>אימייל (לא חובה)</span><input name="email" type="email" autocomplete="email"></label><label><span>נושא</span><input name="subject"></label><label><span>מה תרצו לשאול?</span><textarea name="message" required rows="5"></textarea></label><button class="button button-primary" type="submit">שליחת הודעה</button><p class="form-status" aria-live="polite"></p></form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-grid"><div class="footer-brand"><a class="brand" href="/"><span class="brand-mark">GI</span><span class="brand-copy"><strong id="footer-name">קעמפ גן ישראל חדרה</strong><small id="footer-text">כל החוויות. במקום אחד.</small></span></a><div class="social-links" id="social-links"></div></div><div><h3>ניווט מהיר</h3><a href="#galleries">גלריות</a><a href="#songs">המנונים</a><a href="#testimonials">הורים מספרים</a></div><div><h3>הקעמפ</h3><a href="#story">הסיפור שלנו</a><a href="#updates">עדכונים</a><a href="#contact">יצירת קשר</a></div><div class="footer-logos" id="footer-logos"></div></div><div class="container footer-bottom"><span>© <span id="current-year"></span> קעמפ גן ישראל חדרה</span><a href="/admin/" rel="nofollow">כניסת מנהל</a></div></footer>
+
+  <dialog class="modal" id="testimonial-modal"><form method="dialog" class="modal-card" id="testimonial-form"><button class="modal-close" type="button" data-close-dialog aria-label="סגירה">×</button><span class="eyebrow">ספרו לנו</span><h2>איך היה לכם בקעמפ?</h2><input class="honeypot" name="website" tabindex="-1" autocomplete="off"><div class="form-row"><label><span>שם</span><input name="name" required></label><label><span>הורה של / קשר</span><input name="relation" placeholder="אמא של..."></label></div><label><span>טלפון (לא יוצג באתר)</span><input name="phone" inputmode="tel"></label><fieldset class="rating-field"><legend>דירוג</legend><div class="star-rating"><input id="star5" name="rating" value="5" type="radio" checked><label for="star5">★</label><input id="star4" name="rating" value="4" type="radio"><label for="star4">★</label><input id="star3" name="rating" value="3" type="radio"><label for="star3">★</label><input id="star2" name="rating" value="2" type="radio"><label for="star2">★</label><input id="star1" name="rating" value="1" type="radio"><label for="star1">★</label></div></fieldset><label><span>התגובה שלכם</span><textarea name="message" required minlength="10" rows="5"></textarea></label><button class="button button-primary" type="submit">שליחת תגובה</button><p class="form-status" aria-live="polite"></p></form></dialog>
+
+  <dialog class="search-modal" id="search-modal"><div class="search-panel"><button class="modal-close" id="search-close" aria-label="סגירה">×</button><label class="global-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><input id="global-search-input" type="search" placeholder="חפשו יום, תאריך או פעילות..." autofocus></label><div id="global-search-results" class="search-results"></div></div></dialog>
+
+  <a class="floating-registration is-hidden" id="floating-registration" href="#">הרשמה לקעמפ</a><div class="toast-region" id="toast-region" aria-live="polite"></div>
+  <button class="back-to-top" id="back-to-top" aria-label="חזרה למעלה">↑</button>
+</body>
+</html>
