@@ -17,8 +17,21 @@ function initShell(){
 function initReveals(){
   const nodes=$$('.reveal,.reveal-up,.reveal-left,.reveal-right,.reveal-scale');
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){nodes.forEach(n=>n.classList.add('visible'));return;}
-  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(!entry.isIntersecting)return;const node=entry.target;node.style.transitionDelay=`${node.dataset.delay||0}ms`;node.classList.add('visible');observer.unobserve(node);}),{threshold:.12,rootMargin:'0px 0px -4%'});
-  nodes.forEach(node=>observer.observe(node));
+  nodes.forEach((node,index)=>{if(!node.dataset.delay){const siblings=[...node.parentElement?.children||[]].filter(x=>x.matches?.('.reveal,.reveal-up,.reveal-left,.reveal-right,.reveal-scale'));const local=Math.max(0,siblings.indexOf(node));node.style.setProperty('--reveal-delay',`${Math.min(local*65,390)}ms`);}else node.style.setProperty('--reveal-delay',`${node.dataset.delay}ms`);});
+  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(!entry.isIntersecting)return;const node=entry.target;requestAnimationFrame(()=>node.classList.add('visible'));observer.unobserve(node);}),{threshold:.10,rootMargin:'0px 0px -6%'});
+  nodes.filter(node=>!node.classList.contains('visible')).forEach(node=>observer.observe(node));
+}
+
+async function loadTeam(){
+  const grid=$('#team-roles-grid');if(!grid)return;
+  try{
+    const res=await fetch('/api/team',{headers:{accept:'application/json'}}),data=await res.json();
+    if(!res.ok)throw new Error(data.message||'לא הצלחנו לטעון את הצוות');
+    const rows=(data.roles||[]).filter(x=>x.visible!==false);
+    if(!rows.length)return;
+    grid.innerHTML=rows.map((item,i)=>`<article class="role-card ${item.featured?'role-featured ':''}reveal-up" data-delay="${Math.min(i*70,420)}"><span class="role-number">${String(i+1).padStart(2,'0')}</span><div class="role-icon">${escapeHtml(item.icon||'👤')}</div><h3>${escapeHtml(item.title)}</h3><strong>${escapeHtml(item.subtitle||'')}</strong><p>${escapeHtml(item.description).replace(/\n/g,'<br>')}</p></article>`).join('');
+    initReveals();
+  }catch(e){console.warn('team roles fallback active',e);}
 }
 
 async function loadFaq(){
@@ -33,4 +46,4 @@ async function loadFaq(){
   }catch(e){list.innerHTML='<div class="empty-state"><span>⚠️</span><h3>לא הצלחנו לטעון כרגע</h3><p>נסו שוב בעוד רגע.</p></div>';}
 }
 
-document.addEventListener('DOMContentLoaded',()=>{initShell();loadFaq();window.CampAnalytics?.start(location.pathname||'/');});
+document.addEventListener('DOMContentLoaded',()=>{initShell();loadFaq();loadTeam();window.CampAnalytics?.start(location.pathname||'/');});

@@ -322,7 +322,7 @@ function renderLatest(day) {
 
 function dayCard(day) {
   const image = day.cover_url ? `<img src="${day.cover_url}" alt="${escapeHtml(day.title)}" loading="lazy">` : `<div class="hero-placeholder"><span>🏕️</span><strong>${escapeHtml(day.title)}</strong></div>`;
-  return `<a class="day-card" href="/day.html?slug=${encodeURIComponent(day.slug)}" data-title="${escapeHtml(`${day.title} ${day.label} ${day.date} ${day.hebrew_date}`.toLowerCase())}" data-photos="${Number(day.photo_count)>0}" data-video="${Boolean(day.video_src || Number(day.video_count)>0)}"><div class="day-card-image">${image}<span class="day-card-badge">${escapeHtml(day.label || day.hebrew_date || formatDate(day.date) || 'יום בקעמפ')}</span>${day.video_src ? '<span class="day-card-play">▶</span>' : ''}</div><div class="day-card-body"><h3>${escapeHtml(day.title)}</h3><p>${escapeHtml(day.description || 'גלריית התמונות והסרטונים של היום')}</p><div class="day-card-footer"><span>📸 ${formatNumber(day.photo_count)} תמונות</span><span>לגלריה ←</span></div></div></a>`;
+  return `<a class="day-card reveal" href="/day.html?slug=${encodeURIComponent(day.slug)}" data-title="${escapeHtml(`${day.title} ${day.label} ${day.date} ${day.hebrew_date}`.toLowerCase())}" data-photos="${Number(day.photo_count)>0}" data-video="${Boolean(day.video_src || Number(day.video_count)>0)}"><div class="day-card-image">${image}<span class="day-card-badge">${escapeHtml(day.label || day.hebrew_date || formatDate(day.date) || 'יום בקעמפ')}</span>${day.video_src ? '<span class="day-card-play">▶</span>' : ''}</div><div class="day-card-body"><h3>${escapeHtml(day.title)}</h3><p>${escapeHtml(day.description || 'גלריית התמונות והסרטונים של היום')}</p><div class="day-card-footer"><span>📸 ${formatNumber(day.photo_count)} תמונות</span><span>לגלריה ←</span></div></div></a>`;
 }
 
 function renderDays(days) {
@@ -330,6 +330,7 @@ function renderDays(days) {
   const grid = $('#days-grid');
   grid.innerHTML = days.map(dayCard).join('');
   filterDays();
+  initReveals();
 }
 
 function filterDays() {
@@ -614,8 +615,11 @@ function initTheme() {
 }
 
 function initReveals() {
-  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.style.transitionDelay=`${entry.target.dataset.delay||0}ms`;entry.target.classList.add('visible');observer.unobserve(entry.target);}}),{threshold:.12});
-  $$('.reveal').forEach(node=>observer.observe(node));
+  const nodes=$$('.reveal:not(.visible)');
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){nodes.forEach(n=>n.classList.add('visible'));return;}
+  nodes.forEach(node=>{if(!node.dataset.delay){const siblings=[...node.parentElement?.children||[]].filter(x=>x.classList?.contains('reveal'));const local=Math.max(0,siblings.indexOf(node));node.style.setProperty('--reveal-delay',`${Math.min(local*55,330)}ms`);}else node.style.setProperty('--reveal-delay',`${node.dataset.delay}ms`);});
+  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){requestAnimationFrame(()=>entry.target.classList.add('visible'));observer.unobserve(entry.target);}}),{threshold:.10,rootMargin:'0px 0px -5%'});
+  nodes.forEach(node=>observer.observe(node));
 }
 
 function startCountdown(target) {

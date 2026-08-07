@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS team_roles (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  subtitle TEXT NOT NULL DEFAULT '',
+  description TEXT NOT NULL,
+  icon TEXT NOT NULL DEFAULT '👤',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  featured INTEGER NOT NULL DEFAULT 0,
+  visible INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_team_roles_order ON team_roles(visible, sort_order, id);

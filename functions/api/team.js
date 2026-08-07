@@ -1,0 +1,10 @@
+const defaults=[
+  ['הגנרל','מנהל הקעמפ','מוביל את הקעמפ כולו, מחבר בין כל המחלקות ודואג שהחזון, התוכן והשטח יעבדו יחד.','🎖️',0,1,1],
+  ['מח״ט','אחריות מערכתית','מתכלל את העבודה בין הגדודים והצוותים, עוקב אחרי הביצוע ודואג שכל יום מתקדם בדיוק לפי התוכנית.','🧭',1,0,1],
+  ['מג״ד','מוביל הגדוד','אחראי על האווירה, הסדר וההתקדמות של הגדוד, ומלווה מקרוב את המפקדים והחיילים.','⚡',2,0,1],
+  ['סמג״ד','הכוח שמחזיק את השטח','מסייע למג״ד בניהול הגדוד, פותר דברים בזמן אמת ודואג שהפרטים הקטנים לא נופלים בין הכיסאות.','🛡️',3,0,1],
+  ['מ״פ','מוביל הפלוגה','מכיר את החיילים מקרוב, מוביל את הפלוגה בפעילויות ובמסדרים ושומר על אנרגיה גבוהה לאורך היום.','📣',4,0,1],
+  ['מפקד','הכתובת האישית של החייל','הדמות שנמצאת עם הילדים לאורך היום — מדריכה, מקשיבה, מרימה ויוצרת את החוויה האישית של הקעמפ.','🤝',5,0,1]
+];
+async function ensure(env){await env.DB.prepare(`CREATE TABLE IF NOT EXISTS team_roles (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,subtitle TEXT NOT NULL DEFAULT '',description TEXT NOT NULL,icon TEXT NOT NULL DEFAULT '👤',sort_order INTEGER NOT NULL DEFAULT 0,featured INTEGER NOT NULL DEFAULT 0,visible INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`).run();const count=await env.DB.prepare('SELECT COUNT(*) AS n FROM team_roles').first();if(Number(count?.n||0)===0){for(const row of defaults)await env.DB.prepare('INSERT INTO team_roles(title,subtitle,description,icon,sort_order,featured,visible) VALUES(?,?,?,?,?,?,?)').bind(...row).run();}}
+export async function onRequestGet({env}){if(!env.DB)return Response.json({error:'db_binding_missing'},{status:503});try{await ensure(env);const rows=await env.DB.prepare('SELECT id,title,subtitle,description,icon,sort_order,featured,visible FROM team_roles WHERE visible=1 ORDER BY sort_order ASC,id ASC').all();return Response.json({roles:(rows.results||[]).map(x=>({...x,featured:Boolean(x.featured),visible:Boolean(x.visible)}))},{headers:{'cache-control':'public, max-age=60'}});}catch(error){return Response.json({error:'team_load_failed',message:error.message},{status:500});}}

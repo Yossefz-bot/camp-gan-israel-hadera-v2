@@ -814,3 +814,48 @@ html{
 
 @media(max-width:900px){.info-hero-inner{grid-template-columns:1fr;gap:35px;text-align:center;padding-block:55px}.info-hero p{margin-inline:auto}.info-hero .eyebrow{justify-content:center}.info-hero-art{width:min(250px,62vw)}.info-hero-art>span{font-size:115px}.roles-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.info-hero-inner{min-height:0;padding-block:42px}.info-hero h1{font-size:clamp(46px,15vw,66px)}.info-hero p{font-size:17px}.info-hero-art{width:min(210px,58vw)}.info-hero-art>span{font-size:95px}.info-hero-art>i,.info-hero-art>b{width:55px;height:55px;border-radius:17px;font-size:26px}.faq-page-section,.roles-section{padding-top:48px}.faq-question{padding:19px 18px;font-size:16px}.faq-answer p{padding:0 18px 20px}.faq-contact{padding:26px 22px;display:grid;text-align:center}.faq-contact .button{width:100%}.roles-grid{grid-template-columns:1fr}.role-card{padding:26px}.team-callout{display:grid;text-align:center;padding:28px 22px}.simple-info-footer .container{display:grid;text-align:center;justify-content:center}}
+
+
+/* =========================================================
+   V25.1 Motion polish — richer, smoother, iPhone-safe
+   ========================================================= */
+:root{--reveal-ease:cubic-bezier(.2,.72,.22,1);--reveal-delay:0ms}
+.reveal,.reveal-up,.reveal-left,.reveal-right,.reveal-scale{
+  transition-delay:var(--reveal-delay,0ms)!important;
+  transition-duration:.82s!important;
+  transition-timing-function:var(--reveal-ease)!important;
+  backface-visibility:hidden;
+}
+.reveal:not(.visible),.reveal-up:not(.visible),.reveal-left:not(.visible),.reveal-right:not(.visible),.reveal-scale:not(.visible){filter:blur(5px)}
+.reveal.visible,.reveal-up.visible,.reveal-left.visible,.reveal-right.visible,.reveal-scale.visible{filter:blur(0)}
+.section-heading.reveal.visible,.section-heading.reveal-up.visible{animation:headingSettle .72s var(--reveal-ease) both}
+@keyframes headingSettle{0%{letter-spacing:.018em}100%{letter-spacing:normal}}
+.role-card{transform-origin:50% 100%}
+.role-card.reveal-up:not(.visible){transform:translateY(42px) scale(.975) rotateX(4deg)}
+.role-card.visible{animation:cardSettle .72s var(--reveal-ease) both}
+@keyframes cardSettle{0%{box-shadow:0 5px 12px rgba(23,59,103,.02)}100%{box-shadow:0 8px 25px rgba(23,59,103,.06)}}
+.role-icon{transition:transform .45s var(--reveal-ease),background .3s}
+.role-card:hover .role-icon{transform:translateY(-4px) rotate(-5deg) scale(1.08)}
+.role-card:before{content:"";position:absolute;inset:0;z-index:0;background:linear-gradient(115deg,transparent 28%,rgba(255,255,255,.30) 45%,transparent 62%);transform:translateX(135%);transition:transform .85s var(--reveal-ease);pointer-events:none}
+.role-card:hover:before{transform:translateX(-135%)}
+.role-card>*{position:relative;z-index:1}
+.info-hero-art>i{animation:orbitCardA 4.8s ease-in-out infinite}
+.info-hero-art>b{animation:orbitCardB 5.4s ease-in-out infinite}
+@keyframes orbitCardA{0%,100%{transform:translate3d(0,0,0) rotate(-9deg)}50%{transform:translate3d(-7px,-12px,0) rotate(-3deg)}}
+@keyframes orbitCardB{0%,100%{transform:translate3d(0,0,0) rotate(8deg)}50%{transform:translate3d(9px,-9px,0) rotate(13deg)}}
+.faq-item{transform-origin:50% 0}
+.faq-item.reveal-up:not(.visible){transform:translateY(28px) scale(.985)}
+.faq-question i{transition:transform .35s var(--reveal-ease),background .25s,color .25s}
+.faq-item.open .faq-question i{transform:rotate(180deg) scale(1.08)}
+.day-card.reveal:not(.visible){transform:translateY(32px) scale(.985);filter:blur(4px)}
+.day-card.reveal.visible{transform:none;filter:none}
+.day-card .day-card-image:before{content:"";position:absolute;z-index:3;inset:0;background:linear-gradient(110deg,transparent 25%,rgba(255,255,255,.22) 45%,transparent 65%);transform:translateX(130%);transition:transform .9s var(--reveal-ease);pointer-events:none}
+.day-card:hover .day-card-image:before{transform:translateX(-130%)}
+.story-badge{animation:badgeFloat 4.4s ease-in-out infinite}
+@keyframes badgeFloat{0%,100%{transform:translateY(0) rotate(-7deg)}50%{transform:translateY(-9px) rotate(-3deg)}}
+.doodle-arrow{animation:arrowNudge 2.8s ease-in-out infinite}
+@keyframes arrowNudge{0%,100%{transform:translate3d(0,0,0) rotate(25deg)}50%{transform:translate3d(-5px,6px,0) rotate(20deg)}}
+.updates-art i{animation:tinyFloat 3.2s ease-in-out infinite}.updates-art i:nth-child(3){animation-delay:.55s}.updates-art i:nth-child(4){animation-delay:1.1s}
+@keyframes tinyFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-8px) rotate(8deg)}}
+@media(max-width:700px){.reveal,.reveal-up,.reveal-left,.reveal-right,.reveal-scale{transition-duration:.68s!important}.reveal:not(.visible),.reveal-up:not(.visible),.reveal-left:not(.visible),.reveal-right:not(.visible),.reveal-scale:not(.visible){filter:blur(3px)}}
+@media(prefers-reduced-motion:reduce){.info-hero-art>i,.info-hero-art>b,.story-badge,.doodle-arrow,.updates-art i,.role-card.visible,.section-heading.visible{animation:none!important}.reveal,.reveal-up,.reveal-left,.reveal-right,.reveal-scale{filter:none!important}}
