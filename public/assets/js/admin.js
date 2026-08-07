@@ -1,5 +1,5 @@
 // Admin V14 Pro
-const state={analyticsData:null,analyticsMetric:'page_views',analyticsTab:'overview',csrf:'',view:'dashboard',textOverrides:[],days:[],media:[],mediaOffset:0,mediaTotal:0,mediaSelected:new Set(),settings:{},announcements:[],testimonials:[],subscribers:[],contacts:[],slides:[],newsletters:[],whatsappRecipients:[],whatsappIndex:0,whatsappOpened:new Set(),health:null};
+const state={analyticsData:null,analyticsMetric:'page_views',analyticsTab:'overview',csrf:'',view:'dashboard',textOverrides:[],days:[],media:[],mediaOffset:0,mediaTotal:0,mediaSelected:new Set(),settings:{},announcements:[],testimonials:[],subscribers:[],contacts:[],slides:[],newsletters:[],faq:[],whatsappRecipients:[],whatsappIndex:0,whatsappOpened:new Set(),health:null};
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const escapeHtml=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
 const formatNumber=v=>new Intl.NumberFormat('he-IL').format(Number(v||0));
@@ -31,8 +31,8 @@ function initAuth(){
   $('#logout-button').onclick=async()=>{try{await api('/api/admin/logout',{method:'POST',body:'{}'})}catch{}showLogin()};
 }
 
-const viewMeta={dashboard:['לוח בקרה','תמונת מצב של הקעמפ'],days:['ימי הקעמפ','יצירה, עריכה ופרסום'],media:['מדיה והעלאות','תמונות, סרטונים והמנונים'],settings:['תוכן ועיצוב','הגדרות האתר והשפה החזותית'],announcements:['הודעות להורים','הודעות חשובות באתר'],testimonials:['תגובות הורים','אישור וניהול תגובות'],subscribers:['נרשמים לעדכונים','רשימת תפוצה'],newsletter:['תפוצת WhatsApp','הכנת הודעות ועדכונים לנרשמים'],contacts:['פניות מהאתר','הודעות שהתקבלו'],analytics:['סטטיסטיקות','צפיות ופעילות'],system:['מצב המערכת','D1, R2 ואבטחה']};
-async function goView(view){state.view=view;$$('.admin-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$$('.admin-view').forEach(p=>p.classList.toggle('active',p.dataset.panel===view));setText('#view-title',viewMeta[view]?.[0]||'ניהול');setText('#view-subtitle',viewMeta[view]?.[1]||'');closeSidebar();try{if(view==='dashboard')await loadDashboard();if(view==='days')await loadDays();if(view==='media')await loadMedia(true);if(view==='settings')await loadSettings();if(view==='announcements')await loadAnnouncements();if(view==='testimonials')await loadTestimonials();if(view==='subscribers')await loadSubscribers();if(view==='newsletter')await loadWhatsAppBroadcast();if(view==='contacts')await loadContacts();if(view==='analytics')await loadAnalytics();if(view==='system')await loadHealth()}catch(error){toast(error.message,'error')}}
+const viewMeta={dashboard:['לוח בקרה','תמונת מצב של הקעמפ'],days:['ימי הקעמפ','יצירה, עריכה ופרסום'],media:['מדיה והעלאות','תמונות, סרטונים והמנונים'],settings:['תוכן ועיצוב','הגדרות האתר והשפה החזותית'],announcements:['הודעות להורים','הודעות חשובות באתר'],faq:['שאלות ותשובות','ניהול עמוד השו״ת'],testimonials:['תגובות הורים','אישור וניהול תגובות'],subscribers:['נרשמים לעדכונים','רשימת תפוצה'],newsletter:['תפוצת WhatsApp','הכנת הודעות ועדכונים לנרשמים'],contacts:['פניות מהאתר','הודעות שהתקבלו'],analytics:['סטטיסטיקות','צפיות ופעילות'],system:['מצב המערכת','D1, R2 ואבטחה']};
+async function goView(view){state.view=view;$$('.admin-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$$('.admin-view').forEach(p=>p.classList.toggle('active',p.dataset.panel===view));setText('#view-title',viewMeta[view]?.[0]||'ניהול');setText('#view-subtitle',viewMeta[view]?.[1]||'');closeSidebar();try{if(view==='dashboard')await loadDashboard();if(view==='days')await loadDays();if(view==='media')await loadMedia(true);if(view==='settings')await loadSettings();if(view==='announcements')await loadAnnouncements();if(view==='faq')await loadFaqAdmin();if(view==='testimonials')await loadTestimonials();if(view==='subscribers')await loadSubscribers();if(view==='newsletter')await loadWhatsAppBroadcast();if(view==='contacts')await loadContacts();if(view==='analytics')await loadAnalytics();if(view==='system')await loadHealth()}catch(error){toast(error.message,'error')}}
 function setText(s,v){const n=$(s);if(n)n.textContent=v??''}
 function initNavigation(){$$('.admin-nav button').forEach(b=>b.onclick=()=>goView(b.dataset.view));$$('[data-go]').forEach(b=>b.onclick=()=>goView(b.dataset.go));$('[data-action="quick-upload"]').onclick=()=>{goView('media').then(()=>$('#upload-zone').classList.remove('is-hidden'))};$('#admin-menu').onclick=()=>{$('#admin-sidebar').classList.add('open');$('#sidebar-backdrop').classList.add('open')};$('#sidebar-close').onclick=closeSidebar;$('#sidebar-backdrop').onclick=closeSidebar}
 function closeSidebar(){$('#admin-sidebar').classList.remove('open');$('#sidebar-backdrop').classList.remove('open')}
@@ -418,8 +418,34 @@ function renderAnalyticsChart(){
 async function loadHealth(){try{const data=await api('/api/admin/health');state.health=data;renderHealth(data)}catch(error){renderHealth({ok:false,checks:[{name:'המערכת',ok:false,detail:error.message}]})}}
 function renderHealth(data){$('#system-dot').className=`system-dot ${data.ok?'ok':'error'}`;const hero=$('#health-hero');hero.className=`health-hero ${data.ok?'ok':'error'}`;hero.innerHTML=`<span>${data.ok?'✅':'⚠️'}</span><div><h3>${data.ok?'המערכת פועלת מצוין':'נדרשת השלמת הגדרה'}</h3><p>${data.ok?'D1, R2 והאבטחה מחוברים ופועלים.':'עברו על הבדיקות והשלימו את הפריטים האדומים.'}</p></div>`;$('#health-grid').innerHTML=(data.checks||[]).map(c=>`<article class="health-card"><span>${c.ok?'✅':'❌'}</span><h3>${escapeHtml(c.name)}</h3><p>${escapeHtml(c.detail)}</p></article>`).join('')}
 
+
+async function loadFaqAdmin(){
+  const data=await api('/api/admin/faq');state.faq=data.faq||[];renderFaqAdmin();
+}
+function renderFaqAdmin(){
+  const list=$('#faq-admin-list');if(!list)return;
+  list.innerHTML=state.faq.length?state.faq.map((item,index)=>`<article class="faq-admin-card"><div class="faq-admin-order">${index+1}</div><div class="faq-admin-copy"><strong>${escapeHtml(item.question)}</strong><p>${escapeHtml(item.answer)}</p><small>${item.visible?'מוצג באתר':'מוסתר'} · סדר ${Number(item.sort_order||0)}</small></div><div class="faq-admin-actions"><button type="button" data-faq-move="up" data-id="${item.id}" ${index===0?'disabled':''}>↑</button><button type="button" data-faq-move="down" data-id="${item.id}" ${index===state.faq.length-1?'disabled':''}>↓</button><button type="button" data-faq-edit="${item.id}">עריכה</button></div></article>`).join(''):'<div class="admin-empty">עדיין אין שאלות. לחצו על “הוספת שאלה”.</div>';
+  $$('[data-faq-edit]',list).forEach(b=>b.onclick=()=>openFaqModal(state.faq.find(x=>x.id===Number(b.dataset.faqEdit))));
+  $$('[data-faq-move]',list).forEach(b=>b.onclick=()=>moveFaq(Number(b.dataset.id),b.dataset.faqMove));
+}
+function openFaqModal(item=null){
+  const form=$('#faq-form');form.reset();form.elements.id.value=item?.id||'';form.elements.question.value=item?.question||'';form.elements.answer.value=item?.answer||'';form.elements.sort_order.value=item?.sort_order??state.faq.length;form.elements.visible.checked=item?item.visible!==false:true;setText('#faq-modal-title',item?'עריכת שאלה':'הוספת שאלה');$('#delete-faq').classList.toggle('is-hidden',!item);formStatus(form,'');$('#faq-modal').showModal();
+}
+async function moveFaq(id,direction){
+  const index=state.faq.findIndex(x=>x.id===id),otherIndex=direction==='up'?index-1:index+1;if(index<0||otherIndex<0||otherIndex>=state.faq.length)return;
+  const a=state.faq[index],b=state.faq[otherIndex],aOrder=Number(a.sort_order||index),bOrder=Number(b.sort_order||otherIndex);
+  await api('/api/admin/faq',{method:'PATCH',body:JSON.stringify({...a,sort_order:bOrder})});await api('/api/admin/faq',{method:'PATCH',body:JSON.stringify({...b,sort_order:aOrder})});await loadFaqAdmin();
+}
+function initFaqAdmin(){
+  $('#create-faq')?.addEventListener('click',()=>openFaqModal());
+  $('#faq-form')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,data=Object.fromEntries(new FormData(form));data.sort_order=Number(data.sort_order)||0;data.visible=form.elements.visible.checked;const id=Number(data.id)||0;delete data.id;try{await api('/api/admin/faq',{method:id?'PATCH':'POST',body:JSON.stringify(id?{...data,id}:data)});toast(id?'השאלה עודכנה':'השאלה נוספה');$('#faq-modal').close();await loadFaqAdmin()}catch(error){formStatus(form,error.message,'error')}});
+  $('#delete-faq')?.addEventListener('click',async()=>{const id=Number($('#faq-form').elements.id.value);if(!id||!confirm('למחוק את השאלה לצמיתות?'))return;await api('/api/admin/faq',{method:'DELETE',body:JSON.stringify({id})});$('#faq-modal').close();toast('השאלה נמחקה');await loadFaqAdmin();});
+}
+
 function initTheme(){const stored=localStorage.getItem('camp-admin-theme');if(stored==='dark')document.body.classList.add('dark');$('#admin-theme').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('camp-admin-theme',document.body.classList.contains('dark')?'dark':'light');if(state.view==='analytics')loadAnalytics()}}
 function initMisc(){
   $('#change-password-form')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;formStatus(form,'מעדכן...');try{const data=Object.fromEntries(new FormData(form));await api('/api/admin/password',{method:'POST',body:JSON.stringify(data)});form.reset();formStatus(form,'הסיסמה שונתה בהצלחה','success');toast('הסיסמה שונתה')}catch(error){formStatus(form,error.message,'error')}});$$('[data-close-dialog]').forEach(button=>button.onclick=()=>button.closest('dialog')?.close());$('#health-refresh').onclick=loadHealth;$('#analytics-days').onchange=loadAnalytics;$('#analytics-metric').onchange=renderAnalyticsChart;$$('[data-analytics-tab]').forEach(button=>button.onclick=()=>activateAnalyticsTab(button.dataset.analyticsTab));window.addEventListener('resize',()=>{if(state.view==='analytics')clearTimeout(window._chartTimer),window._chartTimer=setTimeout(renderAnalyticsChart,150)})}
 async function boot(){initAuth();initNavigation();initDayForm();initMedia();initSettings();initAnnouncements();initTestimonials();initSubscribers();initNewsletter();initContacts();initTheme();initMisc();try{const response=await fetch('/api/admin/session',{credentials:'same-origin'}),data=await response.json().catch(()=>({}));if(response.ok&&data.authenticated)await showApp(data);else showLogin()}catch{showLogin()}}
 document.addEventListener('DOMContentLoaded',boot);
+
+document.addEventListener('DOMContentLoaded',()=>initFaqAdmin());

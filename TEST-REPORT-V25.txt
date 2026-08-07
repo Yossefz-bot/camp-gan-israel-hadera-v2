@@ -1,0 +1,12 @@
+V25 TEST REPORT
+===============
+JavaScript syntax — PASS
+FAQ public endpoint — ADDED
+FAQ admin CRUD endpoint — ADDED
+FAQ admin UI — ADDED
+FAQ page — ADDED
+Team page — ADDED
+Responsive CSS — ADDED
+Reduced-motion accessibility — ADDED
+Navigation links — ADDED
+D1 migration — ADDED
